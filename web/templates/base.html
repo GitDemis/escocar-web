@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}}</title>
+  <meta name="description" content="{{if .SelectedCar}}{{.SelectedCar.Make}} {{.SelectedCar.Model}} {{.SelectedCar.Year}} en Escocar Autos. {{.SelectedCar.Description}} Financiación y documentación al día.{{else}}Concesionaria líder en venta de automóviles y motos seleccionadas, deportivos y SUVs en Belén de Escobar. Financiación a medida, toma de usados y peritaje oficial en Escocar Autos.{{end}}">
+  <meta name="keywords" content="concesionaria de autos escobar, autos usados escobar, escocar autos, venta de autos belen de escobar, usados seleccionados, autos financiados escobar, agencia de autos escobar">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://escocarautos.com.ar{{if .SelectedCar}}/auto/{{.SelectedCar.ID}}{{end}}">
+
+  <!-- Open Graph / Redes Sociales & WhatsApp Previews -->
+  <meta property="og:type" content="{{if .SelectedCar}}product{{else}}website{{end}}">
+  <meta property="og:site_name" content="Escocar Autos">
+  <meta property="og:title" content="{{.Title}}">
+  <meta property="og:description" content="{{if .SelectedCar}}Conocé este {{.SelectedCar.Make}} {{.SelectedCar.Model}} {{.SelectedCar.Year}} en Escocar Autos. Consultá financiación y reserva.{{else}}Concesionaria de autos seleccionados en Belén de Escobar. Financiación a medida y toma de usados.{{end}}">
+  <meta property="og:url" content="https://escocarautos.com.ar{{if .SelectedCar}}/auto/{{.SelectedCar.ID}}{{end}}">
+  <meta property="og:image" content="{{if and .SelectedCar .SelectedCar.Images (gt (len .SelectedCar.Images) 0)}}https://escocarautos.com.ar{{index .SelectedCar.Images 0}}{{else}}https://escocarautos.com.ar/static/img/logochico.png{{end}}">
+
+  <!-- Schema.org JSON-LD para Google Search & Google Maps -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "AutoDealer",
+    "name": "Escocar Autos",
+    "image": "https://escocarautos.com.ar/static/img/logochico.png",
+    "@id": "https://escocarautos.com.ar",
+    "url": "https://escocarautos.com.ar",
+    "telephone": "+5491123872625",
+    "priceRange": "$$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Dr. Travi 970",
+      "addressLocality": "Belén de Escobar",
+      "addressRegion": "Provincia de Buenos Aires",
+      "postalCode": "B1625DXD",
+      "addressCountry": "AR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -34.347573,
+      "longitude": -58.795898
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "09:00",
+        "closes": "19:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "14:00"
+      }
+    ]
+  }
+  </script>
+  {{if .SelectedCar}}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Car",
+    "name": "{{.SelectedCar.Make}} {{.SelectedCar.Model}} {{.SelectedCar.Year}}",
+    "brand": {
+      "@type": "Brand",
+      "name": "{{.SelectedCar.Make}}"
+    },
+    "model": "{{.SelectedCar.Model}}",
+    "vehicleModelDate": "{{.SelectedCar.Year}}",
+    "mileageFromOdometer": {
+      "@type": "QuantitativeValue",
+      "value": {{.SelectedCar.Mileage}},
+      "unitCode": "KMT"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "{{.SelectedCar.Price}}",
+      "priceCurrency": "{{.SelectedCar.Currency}}",
+      "availability": "https://schema.org/InStock",
+      "seller": {
+        "@type": "AutoDealer",
+        "name": "Escocar Autos"
+      }
+    }
+  }
+  </script>
+  {{end}}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/static/img/logochicosq.png">
+  <link rel="apple-touch-icon" href="/static/img/logochicosq.png">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261028-04">
+  {{if and .GoogleAnalyticsID (not .IsAdmin)}}
+  <!-- Google tag (gtag.js) - Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{.GoogleAnalyticsID}}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{.GoogleAnalyticsID}}', {
+      send_page_view: true,
+      cookie_domain: 'auto'
+    });
+  </script>
+  {{end}}
+  {{block "extra_css" .}}{{end}}
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="navbar" id="mainNavbar">
+    <div class="nav-container">
+      <a href="/" class="brand" id="brandLogo" title="Escocar Autos">
+        <img src="/static/img/logochico.png" alt="Escocar Autos" class="brand-logo-img">
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link {{if eq .Title "Escocar | Concesionaria Premium de Autos Seleccionados"}}active{{end}}" id="navHome">Inicio</a></li>
+          <li><a href="/catalogo" class="nav-link {{if eq .Title "Catálogo de Vehículos | Escocar"}}active{{end}}" id="navCatalog">Catálogo</a></li>
+          <li><a href="/#nosotros" class="nav-link" id="navAbout">Nosotros</a></li>
+          <li><a href="/#servicios" class="nav-link" id="navServices">Servicios</a></li>
+          <li><a href="/#contacto" class="nav-link" id="navContact">Contacto</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        {{if .VisitorInfo}}
+          {{if .VisitorInfo.IsReturning}}
+            <div class="visitor-pill" title="Tu historial está activo para una atención personalizada" id="returningVisitorBadge">
+              <span class="visitor-pill-dot"></span>
+              <span>Cliente VIP Recurrente</span>
+            </div>
+          {{else}}
+            <div class="visitor-pill" id="newVisitorBadge">
+              <span class="visitor-pill-dot"></span>
+              <span>Visitante Conectado</span>
+            </div>
+          {{end}}
+        {{end}}
+
+        <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20quisiera%20recibir%20asesoramiento%20sobre%20los%20veh%C3%ADculos" 
+           target="_blank" 
+           class="btn btn-primary btn-sm" 
+           data-track="whatsapp" 
+           id="navWhatsAppBtn">
+          Asesor Online
+        </a>
+
+        <!-- Mobile Menu Toggle Button (hidden on desktop) -->
+        <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Abrir Menú">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer (hidden on desktop) -->
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="mobile-nav-header">
+      <img src="/static/img/logochico.png" alt="Escocar Autos" style="height: 30px;">
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <ul class="mobile-nav-links">
+      <li><a href="/" class="mobile-nav-link">Inicio</a></li>
+      <li><a href="/catalogo" class="mobile-nav-link">Catálogo de Vehículos</a></li>
+      <li><a href="/#nosotros" class="mobile-nav-link">Nosotros & Confianza</a></li>
+      <li><a href="/#servicios" class="mobile-nav-link">Servicios & Tasación</a></li>
+      <li><a href="/#contacto" class="mobile-nav-link">Showroom & Ubicación</a></li>
+    </ul>
+    <div class="mobile-nav-footer">
+      <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.75rem;">
+        📍 Dr. Travi 970, Belén de Escobar
+      </div>
+      <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20quisiera%20recibir%20asesoramiento" 
+         target="_blank" 
+         class="btn btn-whatsapp" 
+         style="width: 100%; justify-content: center; padding: 0.85rem;" 
+         data-track="whatsapp">
+        💬 Asesor por WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main>
+    {{template "content" .}}
+  </main>
+
+  <!-- Lead Contact Modal / Mobile Bottom Sheet -->
+  <div class="modal-backdrop" id="leadModal">
+    <div class="modal-content">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <button class="modal-close" id="closeLeadModal" aria-label="Cerrar">&times;</button>
+      <div style="margin-bottom: 1.25rem;">
+        <span class="text-gold" style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">Consulta Comercial</span>
+        <h3 id="modalCarTitle" style="margin-top: 0.25rem; font-size: 1.4rem;">Solicitar Información</h3>
+        <p style="font-size: 0.88rem; margin-top: 0.25rem; color: var(--text-muted);">Dejanos tus datos y un asesor te responderá a la brevedad con la cotización y opciones de financiación.</p>
+      </div>
+
+      <form id="leadForm">
+        <input type="hidden" id="modalCarIdInput" value="">
+        <div id="returningLeadBadge" style="display: {{if .SavedLead}}flex{{else}}none{{end}}; align-items: center; gap: 0.5rem; background: rgba(226, 178, 93, 0.12); border: 1px solid rgba(226, 178, 93, 0.3); padding: 0.55rem 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.82rem; color: #f1f5f9;">
+          <span style="color: var(--accent-gold-light); font-size: 1rem;">✓</span>
+          <span>Autocompletamos tus datos de contacto registrados para mayor comodidad.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" for="leadName">Nombre Completo</label>
+          <input type="text" class="form-input" id="leadName" required placeholder="Ej: Lucas Gómez" value="{{if .SavedLead}}{{.SavedLead.Name}}{{end}}">
+        </div>
+
+        <div class="modal-phone-email-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="leadPhone">WhatsApp / Teléfono Móvil</label>
+            <input type="tel" class="form-input" id="leadPhone" required placeholder="Ej: +54 9 11 ..." value="{{if .SavedLead}}{{.SavedLead.Phone}}{{end}}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="leadEmail">Email (Opcional)</label>
+            <input type="email" class="form-input" id="leadEmail" placeholder="tu@email.com" value="{{if .SavedLead}}{{.SavedLead.Email}}{{end}}">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="leadMessage">Mensaje o Consulta (Opcional)</label>
+          <textarea class="form-input" id="leadMessage" rows="2" placeholder="¿Aceptan permuta por mi vehículo actual? ¿Cómo es la entrega inicial?"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitLeadBtn">
+          Enviar Consulta Prioritaria
+        </button>
+
+        <!-- Direct 1-tap WhatsApp consultation alternative (Mobile Retail Best Practice) -->
+        <a id="modalQuickWaBtn" 
+           data-base-wa="{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}" 
+           href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20quisiera%20consultar%20sobre%20un%20veh%C3%ADculo" 
+           target="_blank" 
+           class="modal-quick-wa-link" 
+           data-track="whatsapp">
+          <span>💬 ¿Preferís atención inmediata?</span>
+          <strong>Escribir por WhatsApp directo ↗</strong>
+        </a>
+      </form>
+    </div>
+  </div>
+
+  <!-- Floating WhatsApp Action -->
+  <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20deseo%20consultar%20sobre%20un%20veh%C3%ADculo" 
+     target="_blank" 
+     class="whatsapp-float" 
+     data-track="whatsapp" 
+     title="Contactar por WhatsApp" 
+     id="floatingWhatsApp">
+    💬
+  </a>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-col">
+        <div class="brand" style="margin-bottom: 1.25rem;">
+          <img src="/static/img/logochico.png" alt="Escocar Autos" class="brand-logo-img" style="height: 38px;">
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <a href="#" class="btn btn-secondary btn-sm" style="border-radius: 50%; width: 36px; height: 36px; padding: 0;">IG</a>
+          <a href="#" class="btn btn-secondary btn-sm" style="border-radius: 50%; width: 36px; height: 36px; padding: 0;">FB</a>
+          <a href="#" class="btn btn-secondary btn-sm" style="border-radius: 50%; width: 36px; height: 36px; padding: 0;">YT</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Vehículos</h4>
+        <ul class="footer-links">
+          <li><a href="/catalogo?body_type=SUV">SUVs & Crossovers</a></li>
+          <li><a href="/catalogo?body_type=Sedán">Sedanes Ejecutivos</a></li>
+          <li><a href="/catalogo?body_type=Coupé">Deportivos & Coupés</a></li>
+          <li><a href="/catalogo?fuel_type=Eléctrico">Eléctricos & Híbridos</a></li>
+          <li><a href="/catalogo?featured=true">Destacados de la Semana</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Servicios</h4>
+        <ul class="footer-links">
+          <li><a href="/#servicios">Financiación Prendaria</a></li>
+          <li><a href="/#servicios">Tasación de Usados</a></li>
+          <li><a href="/#servicios">Peritaje & Revisión Integral</a></li>
+          <li><a href="/#servicios">Gestoría y Transferencia</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col" id="footerContacto">
+        <h4>Showroom Escobar</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #cbd5e1;">📍 Dr. Travi 970, B1625DXD Belén de Escobar, Provincia de Buenos Aires</p>
+        <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #cbd5e1;">💬 Consultas & Visitas: Vía WhatsApp Oficial</p>
+        <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #cbd5e1;">✉️ ventas@escocar.com</p>
+        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.75rem;">
+          Lunes a Viernes: 09:00 - 19:30 hs.<br>
+          Sábados: 10:00 - 16:00 hs.
+        </p>
+        <div style="margin-top: 0.75rem;">
+          <a href="https://maps.google.com/?q=Dr.+Travi+970,+B1625DXD+Bel%C3%A9n+de+Escobar,+Provincia+de+Buenos+Aires" target="_blank" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 600;">Ver en Google Maps ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>&copy; 2026 Escocar Autos. Todos los derechos reservados.</div>
+      <div style="display: flex; gap: 1.5rem;">
+        <a href="#">Términos y Condiciones</a>
+        <a href="#">Política de Privacidad</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/static/js/tracker.js?v=20261028-04"></script>
+  <script src="/static/js/app.js?v=20261028-04"></script>
+  {{block "extra_js" .}}{{end}}
+</body>
+</html>

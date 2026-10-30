@@ -1,0 +1,346 @@
+{{define "content"}}
+
+{{if and (eq .SelectedCar.Status "archivado") (not .IsAdmin)}}
+<!-- UNAVAILABLE PUBLICATION VIEW (FOR PUBLIC VISITORS) -->
+<div class="section" style="padding-top: 3.5rem; padding-bottom: 5rem;">
+  <div style="max-width: 860px; margin: 0 auto; text-align: center; padding: 0 1rem;">
+    
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 3.5rem 2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.7); position: relative; overflow: hidden; backdrop-filter: blur(20px);">
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #ef4444, var(--accent-gold));"></div>
+      
+      <div style="width: 76px; height: 76px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 1.5rem auto; color: #f87171;">
+        🔒
+      </div>
+
+      <span class="badge-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 1.25rem; font-size: 0.8rem; padding: 0.35rem 0.85rem;">
+        Publicación No Disponible
+      </span>
+
+      <h1 style="font-size: 2.3rem; font-weight: 800; margin: 0 0 1rem 0; color: #ffffff;">
+        Esta publicación ya no está disponible
+      </h1>
+
+      <p style="font-size: 1.1rem; line-height: 1.7; color: #cbd5e1; max-width: 600px; margin: 0 auto 2.25rem auto;">
+        El vehículo que estás buscando ya fue retirado de la venta o ya no se encuentra en nuestro inventario activo. Te invitamos a conocer las unidades disponibles en nuestro stock.
+      </p>
+
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/catalogo" class="btn btn-primary" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">
+          Explorar Catálogo Disponible ↗
+        </a>
+        <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%2C%20estaba%20buscando%20un%20veh%C3%ADculo%20en%20Escocar%20que%20ya%20no%20est%C3%A1%20disponible%20y%20quisiera%20saber%20si%20tienen%20algo%20similar" target="_blank" class="btn btn-secondary" style="padding: 0.85rem 1.5rem; font-size: 0.95rem;">
+          💬 Consultar con un Asesor
+        </a>
+      </div>
+    </div>
+
+    {{if .Cars}}
+    <div style="margin-top: 4.5rem; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.75rem;">
+        <div>
+          <span class="text-gold" style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Oportunidades en Stock</span>
+          <h2 style="font-size: 1.8rem; margin: 0.25rem 0 0 0;">Otros vehículos disponibles que podrían interesarte</h2>
+        </div>
+        <a href="/catalogo" class="btn btn-secondary btn-sm" style="padding: 0.45rem 0.9rem;">Ver todo el stock ↗</a>
+      </div>
+
+      <div class="car-grid">
+        {{range .Cars}}
+        <article class="car-card">
+          <div class="car-thumb">
+            <a href="/auto/{{.ID}}" data-track="car_view" data-car-id="{{.ID}}">
+              <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}}">
+            </a>
+            {{if eq .Status "reservado"}}
+              <span class="car-badge-pill car-badge-reserved">Reservado</span>
+            {{else if eq .Status "vendido"}}
+              <span class="car-badge-pill car-badge-sold">Vendido</span>
+            {{else if .Featured}}
+              <span class="car-badge-pill car-badge-featured">Destacado</span>
+            {{else}}
+              <span class="car-badge-pill">{{.BodyType}}</span>
+            {{end}}
+          </div>
+          <div class="car-body">
+            <div class="car-header">
+              <div>
+                <div class="car-make">{{.Make}}</div>
+                <h3 class="car-model"><a href="/auto/{{.ID}}">{{.Model}}</a></h3>
+              </div>
+              <div class="car-year">{{.Year}}</div>
+            </div>
+            <div class="car-price-block">
+              <div class="car-price">{{.FormattedPrice}}</div>
+            </div>
+            <div class="car-footer">
+              <a href="/auto/{{.ID}}" class="btn btn-secondary btn-sm" style="flex:1;">Ver Detalle</a>
+            </div>
+          </div>
+        </article>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
+  </div>
+</div>
+{{else}}
+
+<div class="section car-detail-page" style="padding-top: 2.5rem;" data-current-car-id="{{.SelectedCar.ID}}">
+
+  {{if and (eq .SelectedCar.Status "archivado") .IsAdmin}}
+  <!-- Admin-Only Notice Banner for Archived Publication -->
+  <div style="background: rgba(245, 158, 11, 0.12); border: 2px dashed rgba(245, 158, 11, 0.45); border-radius: var(--radius-md); padding: 1.25rem 1.75rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span style="font-size: 1.8rem;">⚠️</span>
+      <div>
+        <div style="font-weight: 700; color: #fbbf24; font-size: 1.05rem;">Publicación Archivada (Vista Exclusiva de Administrador)</div>
+        <p style="margin: 0.2rem 0 0 0; font-size: 0.88rem; color: #f8fafc;">
+          Esta publicación está archivada y retirada del catálogo público. Ningún cliente puede verla (los visitantes ven el aviso de no disponible). Solo vos y otros administradores tienen acceso.
+        </p>
+      </div>
+    </div>
+    <a href="/admin" class="btn btn-secondary btn-sm" style="padding: 0.5rem 1rem;">Volver al Panel</a>
+  </div>
+  {{end}}
+
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-dim);">
+    <a href="/" style="color: var(--text-muted);">Inicio</a> &nbsp;/&nbsp; 
+    <a href="/catalogo" style="color: var(--text-muted);">Catálogo</a> &nbsp;/&nbsp; 
+    <span style="color: var(--accent-gold);">{{.SelectedCar.Make}} {{.SelectedCar.Model}}</span>
+  </div>
+
+  <div class="detail-container">
+    <!-- Left Column: Gallery & Description -->
+    <div>
+      <div class="gallery-main" id="mainGalleryWrapper">
+        <img id="mainGalleryImg" src="{{.SelectedCar.PrimaryImage}}" alt="{{.SelectedCar.Make}} {{.SelectedCar.Model}}" data-current-index="0">
+        {{if gt (len .SelectedCar.Images) 1}}
+        <button type="button" class="gallery-main-nav prev" id="galleryPrevBtn" aria-label="Foto anterior" title="Foto anterior">&#8249;</button>
+        <button type="button" class="gallery-main-nav next" id="galleryNextBtn" aria-label="Siguiente foto" title="Siguiente foto">&#8250;</button>
+        <div class="gallery-counter-pill" id="galleryCounterPill">
+          <span>📷 Foto</span> <strong id="galleryCurrentNum">1</strong> de <strong>{{len .SelectedCar.Images}}</strong>
+        </div>
+        {{end}}
+      </div>
+
+      {{if gt (len .SelectedCar.Images) 1}}
+      <div class="gallery-thumbs" id="galleryThumbsContainer">
+        {{range $index, $img := .SelectedCar.Images}}
+        <div class="thumb-item {{if eq $index 0}}active{{end}}" data-index="{{$index}}" data-img="{{$img}}">
+          <img src="{{$img}}" alt="Miniatura {{$index}}">
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+
+      <!-- Vehicle Overview -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; margin-top: 2rem; backdrop-filter: blur(20px);">
+        <h3 style="margin-bottom: 1rem;">Descripción del Vehículo</h3>
+        <p style="font-size: 1rem; line-height: 1.8; color: #cbd5e1;">
+          {{.SelectedCar.Description}}
+        </p>
+
+        {{if .SelectedCar.Features}}
+        <h3 style="margin: 2rem 0 1rem 0;">Equipamiento & Destacados</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+          {{range .SelectedCar.Features}}
+          <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.92rem; color: #e2e8f0;">
+            <span style="color: var(--accent-gold); font-size: 1.1rem;">✓</span>
+            <span>{{.}}</span>
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Right Column: Specs, Financing & Direct Actions -->
+    <div>
+      <div class="detail-panel">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+          <div class="car-make" style="font-size: 1rem;">{{.SelectedCar.Make}}</div>
+          <span class="badge-tag badge-{{.SelectedCar.Status}}">{{.SelectedCar.Status}}</span>
+        </div>
+
+        <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">{{.SelectedCar.Model}}</h1>
+        <div style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1.5rem;">Modelo Año {{.SelectedCar.Year}}</div>
+
+        {{if eq .SelectedCar.Status "reservado"}}
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #fbbf24; font-size: 0.92rem;">
+          <span style="font-size: 1.3rem;">⚠️</span>
+          <div>
+            <strong>Vehículo Reservado:</strong> Esta unidad cuenta con una seña activa. Si te interesa, dejanos tu consulta por si se libera la operación.
+          </div>
+        </div>
+        {{else if eq .SelectedCar.Status "vendido"}}
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #f87171; font-size: 0.92rem;">
+          <span style="font-size: 1.3rem;">🔒</span>
+          <div>
+            <strong>Unidad Vendida:</strong> Este vehículo ya fue entregado. Consultanos para buscarte una unidad similar en nuestro stock entrante.
+          </div>
+        </div>
+        {{end}}
+
+        <div style="background: rgba(10, 13, 18, 0.6); padding: 1.25rem 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 2rem;">
+          <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-dim); font-weight: 600;">Precio Contado / Permuta</div>
+          <div style="font-size: 2.4rem; font-weight: 800; font-family: var(--font-display); color: var(--accent-gold-light);">
+            {{.SelectedCar.FormattedPrice}}
+          </div>
+          {{if .SelectedCar.HasDownPayment}}
+          <div style="font-size: 1.05rem; font-weight: 600; color: #38bdf8; margin-top: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>Anticipo:</span>
+            <span style="font-family: var(--font-display); font-weight: 700; color: #7dd3fc;">{{.SelectedCar.FormattedDownPayment}}</span>
+          </div>
+          {{end}}
+          <div style="font-size: 0.8rem; color: var(--accent-emerald); margin-top: 0.4rem;">
+            ● Documentación al día y peritaje oficial Escocar
+          </div>
+        </div>
+
+        <!-- Specifications Table -->
+        <table class="detail-specs-table">
+          <tbody>
+            <tr>
+              <td>Kilometraje</td>
+              <td>{{.SelectedCar.FormattedMileage}}</td>
+            </tr>
+            <tr>
+              <td>Combustible</td>
+              <td>{{.SelectedCar.FuelType}}</td>
+            </tr>
+            <tr>
+              <td>Transmisión</td>
+              <td>{{.SelectedCar.Transmission}}</td>
+            </tr>
+            <tr>
+              <td>Carrocería</td>
+              <td>{{.SelectedCar.BodyType}}</td>
+            </tr>
+            <tr>
+              <td>Color Exterior</td>
+              <td>{{.SelectedCar.Color}}</td>
+            </tr>
+            <tr>
+              <td>Puertas</td>
+              <td>{{.SelectedCar.Doors}}</td>
+            </tr>
+            {{if .SelectedCar.Engine}}
+            <tr>
+              <td>Motorización</td>
+              <td>{{.SelectedCar.Engine}}</td>
+            </tr>
+            {{end}}
+            <tr>
+              <td>Documentación</td>
+              <td style="color: var(--accent-emerald); font-weight: 600;">Al Día / Lista para Transferir</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Direct CTA Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2rem;">
+          <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20estoy%20viendo%20el%20{{.SelectedCar.Make}}%20{{.SelectedCar.Model}}%20({{.SelectedCar.Year}})%20y%20quiero%20coordinar%20una%20visita." 
+             target="_blank" 
+             class="btn btn-whatsapp" 
+             style="font-size: 1.05rem; padding: 1rem;" 
+             data-track="whatsapp" 
+             data-car-id="{{.SelectedCar.ID}}" 
+             data-car-name="{{.SelectedCar.Make}} {{.SelectedCar.Model}}" 
+             id="detailWaBtn">
+            💬 Consultar por WhatsApp
+          </a>
+
+          <button type="button" class="btn btn-primary" data-open-modal="lead" data-car-id="{{.SelectedCar.ID}}" data-car-name="{{.SelectedCar.Make}} {{.SelectedCar.Model}} {{.SelectedCar.Year}}" id="detailLeadBtn">
+            Solicitar Tasación / Permuta
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar / Related Cars -->
+  {{if .Cars}}
+  <div style="margin-top: 5rem;">
+    <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+      <span class="section-tag">Alternativas Relacionadas</span>
+      <h2>Vehículos Similares en <span class="text-gold">Stock</span></h2>
+    </div>
+
+    <div class="car-grid">
+      {{range .Cars}}
+      <article class="car-card">
+        <div class="car-thumb">
+          <a href="/auto/{{.ID}}" data-track="car_view" data-car-id="{{.ID}}">
+            <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}}">
+          </a>
+          {{if eq .Status "reservado"}}
+            <span class="car-badge-pill car-badge-reserved">Reservado</span>
+          {{else if eq .Status "vendido"}}
+            <span class="car-badge-pill car-badge-sold">Vendido</span>
+          {{else if .Featured}}
+            <span class="car-badge-pill car-badge-featured">Destacado</span>
+          {{else}}
+            <span class="car-badge-pill">{{.BodyType}}</span>
+          {{end}}
+        </div>
+        <div class="car-body">
+          <div class="car-header">
+            <div>
+              <div class="car-make">{{.Make}}</div>
+              <h3 class="car-model"><a href="/auto/{{.ID}}">{{.Model}}</a></h3>
+            </div>
+            <div class="car-year">{{.Year}}</div>
+          </div>
+          <div class="car-price-block">
+            <div class="car-price">{{.FormattedPrice}}</div>
+          </div>
+          <div class="car-footer">
+            <a href="/auto/{{.ID}}" class="btn btn-secondary btn-sm" style="flex:1;">Ver Detalle</a>
+          </div>
+        </div>
+      </article>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+
+</div>
+{{end}}
+
+{{if ne .SelectedCar.Status "archivado"}}
+<!-- Mobile Retail Sticky Action Bar (Hidden on desktop, visible on mobile <= 768px) -->
+<div class="mobile-retail-bottom-bar" id="mobileRetailBar">
+  <div class="mobile-retail-price-box">
+    <div class="mobile-retail-price">{{.SelectedCar.FormattedPrice}}</div>
+    {{if .SelectedCar.HasDownPayment}}
+    <div class="mobile-retail-sub" style="color: #38bdf8; font-weight: 600;">Antic: {{.SelectedCar.FormattedDownPayment}}</div>
+    {{else}}
+    <div class="mobile-retail-sub">Contado / Permuta</div>
+    {{end}}
+  </div>
+  <div class="mobile-retail-actions">
+    <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20estoy%20viendo%20el%20{{.SelectedCar.Make}}%20{{.SelectedCar.Model}}%20({{.SelectedCar.Year}})%20y%20quiero%20coordinar%20una%20visita." 
+       target="_blank" 
+       class="btn btn-whatsapp btn-sm mobile-retail-btn" 
+       data-track="whatsapp" 
+       data-car-id="{{.SelectedCar.ID}}" 
+       data-car-name="{{.SelectedCar.Make}} {{.SelectedCar.Model}}" 
+       id="mobileDetailWaBtn">
+      <span>💬 WhatsApp</span>
+    </a>
+    <button type="button" 
+            class="btn btn-primary btn-sm mobile-retail-btn" 
+            data-open-modal="lead" 
+            data-car-id="{{.SelectedCar.ID}}" 
+            data-car-name="{{.SelectedCar.Make}} {{.SelectedCar.Model}} {{.SelectedCar.Year}}" 
+            id="mobileDetailLeadBtn">
+      <span>Consultar</span>
+    </button>
+  </div>
+</div>
+{{end}}
+
+{{end}}

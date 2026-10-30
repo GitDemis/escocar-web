@@ -1,0 +1,1271 @@
+{{define "extra_css"}}
+<link rel="stylesheet" href="/static/css/admin.css?v=20261028-04">
+{{end}}
+
+{{define "content"}}
+<div class="admin-header">
+  <div class="admin-header-container">
+    <div>
+      <span class="text-gold" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Panel de Control</span>
+      <h1 style="font-size: 1.8rem; margin-top: 0.2rem;">Escocar Management & Analytics</h1>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1.5rem;">
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="tab-analytics" id="tabBtnAnalytics">
+          📊 Analíticas & Tráfico
+        </button>
+        <button class="admin-tab" data-tab="tab-google-analytics" id="tabBtnGoogleAnalytics">
+          📈 Google Analytics 4
+        </button>
+        <button class="admin-tab" data-tab="tab-inventory" id="tabBtnInventory">
+          🚗 Inventario ({{len .Cars}})
+        </button>
+        <button class="admin-tab" data-tab="tab-leads" id="tabBtnLeads">
+          📬 Leads & Consultas ({{len .Leads}})
+        </button>
+        <button class="admin-tab" data-tab="tab-new-car" id="tabBtnNewCar">
+          ➕ Agregar Auto
+        </button>
+        <button class="admin-tab" data-tab="tab-settings" id="tabBtnSettings">
+          ⚙️ Configuración
+        </button>
+      </div>
+
+      {{if .AdminSession}}
+      <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.4); padding: 0.35rem 0.85rem; border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
+        {{if .AdminSession.Picture}}
+          <img src="{{.AdminSession.Picture}}" alt="Admin" style="width: 28px; height: 28px; border-radius: 50%;">
+        {{else}}
+          <span style="font-size: 1.1rem;">👤</span>
+        {{end}}
+        <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;">{{.AdminSession.Email}}</span>
+        <a href="/auth/logout" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: var(--radius-full); margin-left: 0.25rem;" title="Cerrar sesión">Salir</a>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+
+<div class="section" style="padding-top: 0;">
+
+  <!-- TAB 1: ANALYTICS & VISITOR TRACKING -->
+  <div class="tab-content active" id="tab-analytics">
+    <!-- Top KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Visitantes Totales</div>
+        <div class="kpi-value">{{.Analytics.TotalVisitors}}</div>
+        <div class="kpi-sub">{{.Analytics.TodayVisitors}} activos hoy</div>
+      </div>
+
+      <div class="kpi-card kpi-emerald">
+        <div class="kpi-label">Visitantes Recurrentes</div>
+        <div class="kpi-value">{{.Analytics.ReturningVisitors}}</div>
+        <div class="kpi-sub">Usuarios que vuelven al sitio</div>
+      </div>
+
+      <div class="kpi-card kpi-cyan">
+        <div class="kpi-label">Tasa de Retorno (Fidelidad)</div>
+        <div class="kpi-value">{{printf "%.1f" .Analytics.ReturnRate}}%</div>
+        <div class="kpi-sub">Interés de compra recurrente</div>
+      </div>
+
+      <div class="kpi-card kpi-crimson">
+        <div class="kpi-label">Páginas Vistas (Vistas)</div>
+        <div class="kpi-value">{{.Analytics.TotalPageViews}}</div>
+        <div class="kpi-sub">{{.Analytics.TodayPageViews}} registradas hoy</div>
+      </div>
+    </div>
+
+    <!-- Top Viewed Cars & Device Breakdown Grid -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2.5rem;">
+      <!-- Most Viewed Cars -->
+      <div class="dashboard-card">
+        <div class="card-title-row">
+          <h3>Vehículos con Mayor Interés</h3>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Métricas de vistas y usuarios únicos</span>
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Vehículo</th>
+              <th>Precio</th>
+              <th>Total Vistas</th>
+              <th>Visitantes Únicos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Analytics.TopCars}}
+            <tr>
+              <td>
+                <strong>{{.Make}} {{.Model}}</strong> ({{.Year}})
+              </td>
+              <td style="color: var(--accent-gold-light);">{{.Price}}</td>
+              <td><strong>{{.ViewsCount}}</strong></td>
+              <td><span class="badge-tag badge-new">{{.UniqueUsers}} usuarios</span></td>
+            </tr>
+            {{else}}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                Aún no hay interacciones registradas.
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Device Breakdown -->
+      <div class="dashboard-card">
+        <div class="card-title-row">
+          <h3>Dispositivos</h3>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+          {{range $device, $count := .Analytics.DeviceBreakdown}}
+          <div style="background: rgba(10, 13, 18, 0.5); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span>📱</span>
+              <strong>{{$device}}</strong>
+            </div>
+            <span style="font-size: 1.1rem; font-weight: 700; color: var(--accent-gold);">{{$count}}</span>
+          </div>
+          {{else}}
+          <p style="color: var(--text-muted);">Sin datos de dispositivos aún.</p>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Visitor Activity Log (Tracking Table with Identified Contacts) -->
+    <div class="dashboard-card">
+      <div class="card-title-row">
+        <div>
+          <h3>Métricas de Navegación & Clientes Identificados</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Rastreo inteligente vinculado a la cookie persistente: cuando un usuario envía una consulta con su nombre, sus visitas quedan asociadas automáticamente a su identidad y autos de interés.
+          </p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="window.location.reload()">Actualizar</button>
+      </div>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Usuario / Contacto</th>
+            <th>Tipo / Estado</th>
+            <th>Sesiones</th>
+            <th>Vehículos Explorados</th>
+            <th>Dispositivo</th>
+            <th>Vistas</th>
+            <th>Última Conexión</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Analytics.RecentVisitors}}
+          <tr>
+            <td>
+              {{if .Name}}
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.95rem; flex-shrink: 0;">
+                    👤
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; color: #ffffff; font-size: 0.95rem;">
+                      {{.Name}}
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; align-items: center; margin-top: 0.2rem; flex-wrap: wrap;">
+                      {{if .Phone}}
+                        <a href="https://wa.me/{{.Phone}}" target="_blank" style="font-size: 0.8rem; color: #25d366; text-decoration: none; font-weight: 600;">
+                          💬 {{.Phone}}
+                        </a>
+                      {{end}}
+                      {{if .Email}}
+                        <span style="font-size: 0.78rem; color: var(--text-dim);">✉️ {{.Email}}</span>
+                      {{end}}
+                    </div>
+                    <div style="font-size: 0.7rem; color: #64748b; font-family: monospace; margin-top: 0.15rem;" title="ID de Cookie">
+                      Cookie: {{slice .ID 0 13}}...
+                    </div>
+                  </div>
+                </div>
+              {{else}}
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+                    🕵️
+                  </div>
+                  <div>
+                    <div style="color: #94a3b8; font-size: 0.9rem; font-style: italic;">
+                      Visitante Anónimo
+                    </div>
+                    <code style="font-size: 0.75rem; color: #64748b;" title="ID de Cookie">{{slice .ID 0 18}}...</code>
+                  </div>
+                </div>
+              {{end}}
+            </td>
+            <td>
+              {{if .Name}}
+                <span class="badge-tag" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 700;">
+                  ★ Identificado
+                </span>
+              {{else if gt .VisitCount 1}}
+                <span class="badge-tag badge-returning">Recurrente</span>
+              {{else}}
+                <span class="badge-tag badge-new">Nuevo</span>
+              {{end}}
+            </td>
+            <td>
+              <strong>{{.VisitCount}}</strong> {{if gt .VisitCount 1}}visitas{{else}}visita{{end}}
+            </td>
+            <td>
+              {{if .CarsViewedStr}}
+                <div style="color: var(--accent-gold-light); font-weight: 600; font-size: 0.88rem; max-width: 250px; line-height: 1.35;">
+                  🚗 {{.CarsViewedStr}}
+                </div>
+              {{else}}
+                <span style="color: var(--text-dim); font-size: 0.8rem;">Explorando catálogo/home</span>
+              {{end}}
+            </td>
+            <td>{{.DeviceType}}</td>
+            <td><strong>{{.TotalPageViews}}</strong> vistas</td>
+            <td style="color: var(--text-dim); font-size: 0.85rem;">{{formatDateTime .LastSeenAt}}</td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
+              No se han registrado visitas aún.
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: INVENTORY MANAGEMENT -->
+  <div class="tab-content" id="tab-inventory">
+    <div class="dashboard-card">
+      <div class="card-title-row">
+        <h3>Inventario de Vehículos en Stock</h3>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('tabBtnNewCar').click()">
+          + Publicar Nuevo Vehículo
+        </button>
+      </div>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Foto</th>
+            <th>Vehículo</th>
+            <th>Año</th>
+            <th>Precio / Anticipo</th>
+            <th>Kilometraje</th>
+            <th>Estado</th>
+            <th>Destacado</th>
+            <th>Vistas</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Cars}}
+          <tr id="adminCarRow{{.ID}}">
+            <td>
+              <img src="{{.PrimaryImage}}" alt="{{.Make}}" class="table-car-thumb">
+            </td>
+            <td>
+              <strong>{{.Make}} {{.Model}}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">{{.BodyType}} • {{.FuelType}}</div>
+            </td>
+            <td>{{.Year}}</td>
+            <td>
+              <div style="color: var(--accent-gold-light); font-weight: 700;">{{.FormattedPrice}}</div>
+              {{if .HasDownPayment}}
+              <div style="font-size: 0.75rem; color: #38bdf8; font-weight: 600;">Antic: {{.FormattedDownPayment}}</div>
+              {{end}}
+            </td>
+            <td>{{.FormattedMileage}}</td>
+            <td>
+              <select class="admin-status-select" data-car-id="{{.ID}}" data-status="{{.Status}}">
+                <option value="disponible" {{if eq .Status "disponible"}}selected{{end}}>Disponible</option>
+                <option value="reservado" {{if eq .Status "reservado"}}selected{{end}}>Reservado</option>
+                <option value="vendido" {{if eq .Status "vendido"}}selected{{end}}>Vendido</option>
+                <option value="archivado" {{if eq .Status "archivado"}}selected{{end}}>Archivado</option>
+              </select>
+            </td>
+            <td>
+              {{if .Featured}}<span style="color: var(--accent-gold);">★ Sí</span>{{else}}<span style="color: var(--text-dim);">No</span>{{end}}
+            </td>
+            <td>{{.ViewsCount}}</td>
+            <td>
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                <a href="/auto/{{.ID}}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.6rem;">Ver</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-edit-car="{{.ID}}" onclick="window.openEditCarModal && window.openEditCarModal('{{.ID}}')" style="padding: 0.3rem 0.6rem; color: var(--accent-gold);" title="Editar publicación">✏️ Editar</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-delete-car="{{.ID}}" style="padding: 0.3rem 0.6rem; color: #f87171;{{if eq .Status "archivado"}} display: none;{{end}}" title="Archivar publicación (solo visible para administradores)">Archivar</button>
+                <button type="button" class="btn btn-sm btn-danger-solid" data-purge-car="{{.ID}}" style="padding: 0.3rem 0.6rem;{{if ne .Status "archivado"}} display: none;{{end}}" title="Eliminar definitivamente (no se puede deshacer)">🗑️ Eliminar</button>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: LEADS & INQUIRIES -->
+  <div class="tab-content" id="tab-leads">
+    <div class="dashboard-card">
+      <div class="card-title-row">
+        <div>
+          <h3>Consultas y Leads Recibidos</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Pipeline comercial: abrí cualquier consulta para ver el mensaje completo, cambiar el estado y registrar notas internas para el equipo.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Status Filter Bar -->
+      <div class="leads-filter-bar">
+        <button type="button" class="lead-filter-btn active" data-filter="all">Todas (<span id="leadCountActive">{{len .Leads}}</span>)</button>
+        <button type="button" class="lead-filter-btn" data-filter="nuevo">🔵 Nuevas</button>
+        <button type="button" class="lead-filter-btn" data-filter="en_gestion">🟡 En Gestión</button>
+        <button type="button" class="lead-filter-btn" data-filter="contactado">🟣 Contactadas</button>
+        <button type="button" class="lead-filter-btn" data-filter="visita_agendada">🟢 Visita Agendada</button>
+        <button type="button" class="lead-filter-btn" data-filter="cerrado_ganado">🏆 Vendidas</button>
+        <button type="button" class="lead-filter-btn" data-filter="descartado">⚪ Descartadas</button>
+        <button type="button" class="lead-filter-btn" data-filter="archivado">🗄️ Archivadas (<span id="leadCountArchived">0</span>)</button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="admin-table" id="leadsAdminTable">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Contacto</th>
+              <th>Vehículo</th>
+              <th>Estado</th>
+              <th>Notas Internas</th>
+              <th style="text-align: right;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Leads}}
+            <tr id="lead-row-{{.ID}}" data-lead-id="{{.ID}}" data-status="{{.Status}}" class="lead-table-row"{{if eq .Status "archivado"}} style="display: none;"{{end}}>
+              <td style="color: var(--text-dim); font-size: 0.82rem; white-space: nowrap;">
+                {{formatDateTime .CreatedAt}}
+              </td>
+              <td>
+                <div style="font-weight: 700; color: #f8fafc;">{{.Name}}</div>
+                {{if .VisitorID}}
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">ID: {{printf "%.8s" .VisitorID}}</span>
+                {{end}}
+              </td>
+              <td>
+                <div>
+                  <a href="https://wa.me/{{.Phone}}?text=Hola%20{{.Name}}%2C%20te%20contacto%20de%20Escocar%20Autos%20por%20tu%20consulta" 
+                     target="_blank" 
+                     style="color: #25d366; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <span>📱</span> {{.Phone}} ↗
+                  </a>
+                </div>
+                {{if .Email}}
+                  <div style="font-size: 0.78rem; color: #94a3b8;">✉️ {{.Email}}</div>
+                {{end}}
+              </td>
+              <td>
+                {{if .CarID}}
+                  <a href="/auto/{{.CarID}}" target="_blank" style="color: var(--accent-gold); font-weight: 600; text-decoration: none;">
+                    {{.CarTitle}} ↗
+                  </a>
+                {{else}}
+                  <span style="color: var(--text-muted);">{{.CarTitle}}</span>
+                {{end}}
+              </td>
+              <td>
+                <span class="badge-tag badge-status-{{.Status}}" id="lead-status-badge-{{.ID}}">
+                  {{leadStatusLabel .Status}}
+                </span>
+              </td>
+              <td style="max-width: 200px;">
+                <div id="lead-notes-preview-{{.ID}}" class="lead-notes-preview" title="{{.Notes}}">
+                  {{if .Notes}}
+                    <span style="color: #f1f5f9;">📝 {{.Notes}}</span>
+                  {{else}}
+                    <span style="color: var(--text-muted); font-style: italic; font-size: 0.8rem;">Sin notas</span>
+                  {{end}}
+                </div>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <button type="button" class="btn btn-sm btn-outline open-lead-detail-btn" data-lead-id="{{.ID}}" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; border-radius: 6px;">
+                  📋 Abrir Solicitud
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" data-archive-lead="{{.ID}}" style="font-size: 0.82rem; padding: 0.4rem 0.75rem; border-radius: 6px; color: #94a3b8;{{if eq .Status "archivado"}} display: none;{{end}}" title="Archivar consulta">🗄️ Archivar</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-unarchive-lead="{{.ID}}" style="font-size: 0.82rem; padding: 0.4rem 0.75rem; border-radius: 6px;{{if ne .Status "archivado"}} display: none;{{end}}" title="Restaurar consulta">↩️ Restaurar</button>
+                <button type="button" class="btn btn-sm btn-danger-solid" data-delete-lead="{{.ID}}" style="font-size: 0.82rem; padding: 0.4rem 0.75rem; border-radius: 6px;{{if ne .Status "archivado"}} display: none;{{end}}" title="Eliminar definitivamente (no se puede deshacer)">🗑️ Eliminar</button>
+              </td>
+            </tr>
+            {{else}}
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                No hay consultas registradas todavía. Las consultas enviadas desde el modal o fichas aparecerán aquí.
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ADD NEW CAR -->
+  <div class="tab-content" id="tab-new-car">
+    <div class="dashboard-card" style="max-width: 900px; margin: 0 auto;">
+      <div class="card-title-row">
+        <div>
+          <h3>Publicar Nuevo Vehículo</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Las fotos se almacenarán en el <strong>volumen montado persistente</strong> (<code>/app/uploads</code>) para máxima durabilidad en tu servidor cloud.
+          </p>
+        </div>
+      </div>
+
+      <form id="addCarForm" enctype="multipart/form-data">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="carMake">Marca *</label>
+            <input type="text" name="make" id="carMake" class="form-input" required placeholder="Ej: BMW, Audi, Mercedes-Benz, Ford">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carModel">Modelo y Versión *</label>
+            <input type="text" name="model" id="carModel" class="form-input" required placeholder="Ej: M340i xDrive Sedan">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="carCurrency">Moneda de Pago *</label>
+            <select name="currency" id="carCurrency" class="form-select" required>
+              <option value="USD" selected>USD (Dólares)</option>
+              <option value="ARS">ARS (Pesos Argentinos)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carPrice">Precio Total *</label>
+            <input type="number" name="price" id="carPrice" class="form-input" required placeholder="Ej: 95000 (USD) o 18000000 (ARS)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carDownPayment">Anticipo / Entrega Mínima</label>
+            <input type="number" name="down_payment" id="carDownPayment" class="form-input" placeholder="0 (Dejar en 0 si no aplica)">
+            <span style="font-size: 0.72rem; color: var(--text-dim);">En la misma moneda seleccionada</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="carYear">Año *</label>
+            <input type="number" name="year" id="carYear" class="form-input" required value="2024" min="1970" max="2027">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carMileage">Kilometraje (km) *</label>
+            <input type="number" name="mileage" id="carMileage" class="form-input" required placeholder="0 para 0km">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carDoors">Puertas</label>
+            <input type="number" name="doors" id="carDoors" class="form-input" value="4">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="carBody">Carrocería / Tipo *</label>
+            <select name="body_type" id="carBody" class="form-select" required>
+              <option value="SUV">SUV</option>
+              <option value="Sedán">Sedán</option>
+              <option value="Coupé">Coupé</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Moto">Moto</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carFuel">Combustible *</label>
+            <select name="fuel_type" id="carFuel" class="form-select" required>
+              <option value="Nafta">Nafta</option>
+              <option value="Diésel">Diésel</option>
+              <option value="Híbrido">Híbrido</option>
+              <option value="Eléctrico">100% Eléctrico</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carTrans">Transmisión *</label>
+            <select name="transmission" id="carTrans" class="form-select" required>
+              <option value="Automática">Automática</option>
+              <option value="Manual">Manual</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="carColor">Color Exterior</label>
+            <input type="text" name="color" id="carColor" class="form-input" placeholder="Ej: Negro Santorini Metálico">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="carEngine">Motor / Potencia</label>
+            <input type="text" name="engine" id="carEngine" class="form-input" placeholder="Ej: 3.0L 6 cilindros Turbo 387 CV">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="carDesc">Descripción Detallada</label>
+          <textarea name="description" id="carDesc" class="form-input" rows="3" placeholder="Estado del vehículo, servicios oficiales, cantidad de dueños, condiciones de permuta..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="carFeatures">Equipamiento Destacado (un ítem por línea)</label>
+          <textarea name="features" id="carFeatures" class="form-input" rows="4" placeholder="Apple CarPlay & Android Auto&#10;Techo panorámico eléctrico&#10;Cámaras 360 grados&#10;Butacas calefaccionadas de cuero Merino"></textarea>
+        </div>
+
+        <!-- Drag & Drop Multiple Images Upload -->
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label">Fotos del Vehículo (Galería)</label>
+          <div class="dropzone-box" id="addCarDropzone">
+            <input type="file" id="addCarFileInput" multiple accept="image/jpeg,image/png,image/webp">
+            <div class="dropzone-content">
+              <span class="dropzone-icon">📸</span>
+              <div style="font-size: 1.05rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.35rem;">
+                Arrastrá y soltá las fotos acá o hacé <span style="color: var(--accent-gold); text-decoration: underline;">clic para seleccionar</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-dim); margin: 0;">
+                Podés subir múltiples imágenes a la vez (JPG, PNG, WebP). La primera foto será la portada.
+              </p>
+            </div>
+          </div>
+          <!-- Preview container for selected files -->
+          <div class="image-preview-grid" id="addCarPreviewGrid"></div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" name="featured" id="carFeatured" value="true">
+            <span style="font-weight: 600; font-size: 0.95rem;">Destacar en Portada</span>
+          </label>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label class="form-label" for="carStatus" style="margin: 0;">Estado:</label>
+            <select name="status" id="carStatus" class="form-select" style="width: auto; padding: 0.4rem 0.8rem;">
+              <option value="disponible">Disponible</option>
+              <option value="reservado">Reservado</option>
+              <option value="vendido">Vendido</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem;" id="submitNewCarBtn">
+          Guardar y Publicar en Catálogo
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAB: GOOGLE ANALYTICS 4 & LOOKER STUDIO -->
+  <div class="tab-content" id="tab-google-analytics">
+    <!-- Integration Status & Quick Connect Card -->
+    <div class="dashboard-card" style="margin-bottom: 2rem;">
+      <div class="card-title-row" style="flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 1.4rem;">📈</span>
+            <h3 style="margin: 0; font-size: 1.35rem;">Google Analytics 4 (GA4) & Dashboard</h3>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">
+            Medición oficial de tráfico web, atribución de campañas publicitarias y conversiones de retail automotriz en tiempo real.
+          </p>
+        </div>
+        <div>
+          {{if .GoogleAnalyticsID}}
+            <span class="badge-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.85rem; padding: 0.45rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; display: inline-block; box-shadow: 0 0 8px #34d399;"></span>
+              Activo en Producción: <strong>{{.GoogleAnalyticsID}}</strong>
+            </span>
+          {{else}}
+            <span class="badge-tag" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.85rem; padding: 0.45rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; display: inline-block;"></span>
+              Pendiente de Vincular ID de Medición
+            </span>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Quick Measurement ID Input -->
+      <form id="gaQuickForm" style="margin-top: 1.5rem; background: rgba(15, 20, 29, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+        <label class="form-label" for="gaMeasurementIdInput" style="font-size: 0.92rem; font-weight: 600; color: #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+          <span>ID de Medición de Google Analytics (Measurement ID)</span>
+          <span style="font-size: 0.78rem; font-weight: 400; color: var(--text-dim);">Formato: <code>G-XXXXXXXXXX</code></span>
+        </label>
+        <div style="display: flex; gap: 0.75rem; margin-top: 0.4rem; flex-wrap: wrap;">
+          <input type="text" 
+                 id="gaMeasurementIdInput" 
+                 name="google_analytics_id" 
+                 class="form-input" 
+                 placeholder="Ej: G-XXXXXXXXXX" 
+                 value="{{.GoogleAnalyticsID}}" 
+                 style="flex: 1; min-width: 240px; font-family: monospace; font-size: 1rem; font-weight: 600; text-transform: uppercase;">
+          <button type="submit" class="btn btn-primary" id="saveGaQuickBtn" style="padding: 0.65rem 1.4rem; white-space: nowrap;">
+            Guardar ID de Analytics
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <p style="font-size: 0.8rem; color: var(--text-dim); margin: 0;">
+            Al guardar, el script oficial <code>gtag.js</code> se inyectará automáticamente en todas las páginas públicas del sitio web.
+          </p>
+          <span id="gaSaveStatus" style="font-size: 0.88rem; font-weight: 600; display: none;"></span>
+        </div>
+      </form>
+    </div>
+
+    <!-- Direct GA4 Shortcuts Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      <a href="https://analytics.google.com/analytics/web/#/realtime" target="_blank" class="dashboard-card" style="text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.transform='none'">
+        <div>
+          <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">⚡</div>
+          <h4 style="color: #fff; margin: 0 0 0.35rem 0; font-size: 1.05rem;">Tráfico en Tiempo Real</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            Mirá cuántos usuarios están navegando el showroom web ahora mismo, qué modelos específicos ven y su ubicación geográfica.
+          </p>
+        </div>
+        <span style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+          Abrir en Analytics ↗
+        </span>
+      </a>
+
+      <a href="https://analytics.google.com/analytics/web/#/reports/lifecycle-engagement-conversions" target="_blank" class="dashboard-card" style="text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.transform='none'">
+        <div>
+          <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">🎯</div>
+          <h4 style="color: #fff; margin: 0 0 0.35rem 0; font-size: 1.05rem;">Embudo de Conversiones & Leads</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            Monitoreá los clics a WhatsApp (<code>generate_lead</code>), consultas enviadas y simulaciones de crédito automotriz.
+          </p>
+        </div>
+        <span style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+          Ver Conversiones ↗
+        </span>
+      </a>
+
+      <a href="https://analytics.google.com/analytics/web/#/reports/lifecycle-acquisition-overview" target="_blank" class="dashboard-card" style="text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.transform='none'">
+        <div>
+          <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">🌐</div>
+          <h4 style="color: #fff; margin: 0 0 0.35rem 0; font-size: 1.05rem;">Fuentes de Tráfico & Campañas</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            Conocé de dónde provienen tus visitas: campañas de Instagram Ads, Google Search, MercadoLibre o tráfico directo.
+          </p>
+        </div>
+        <span style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+          Ver Adquisición ↗
+        </span>
+      </a>
+
+      <a href="https://analytics.google.com" target="_blank" class="dashboard-card" style="text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.transform='none'">
+        <div>
+          <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">📊</div>
+          <h4 style="color: #fff; margin: 0 0 0.35rem 0; font-size: 1.05rem;">Consola Oficial GA4</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            Accedé a la suite completa de Google Analytics 4, informes de retención, perfiles demográficos y comparativas históricas.
+          </p>
+        </div>
+        <span style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+          Ir a Google Analytics ↗
+        </span>
+      </a>
+    </div>
+
+    <!-- Looker Studio Embedded Dashboard Section -->
+    <div class="dashboard-card" style="margin-bottom: 2rem;">
+      <div class="card-title-row" style="flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 1.4rem;">📊</span>
+            <h3 style="margin: 0; font-size: 1.35rem;">Dashboard Visual Integrado (Google Looker Studio)</h3>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">
+            Podés incrustar aquí un informe interactivo de Google Looker Studio conectado a tu propiedad de Analytics.
+          </p>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary btn-sm" id="toggleLookerConfigBtn" style="font-size: 0.8rem;">
+            ⚙️ {{if .LookerStudioURL}}Cambiar URL del Dashboard{{else}}Configurar URL del Dashboard{{end}}
+          </button>
+        </div>
+      </div>
+
+      <!-- Config Box for Looker Studio (visible if not configured or toggled) -->
+      <div id="lookerStudioConfigBox" style="{{if .LookerStudioURL}}display: none;{{end}} margin-top: 1.25rem; background: rgba(15, 20, 29, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+        <form id="lookerStudioForm">
+          <label class="form-label" for="lookerStudioUrlInput" style="font-size: 0.92rem; font-weight: 600; color: #f1f5f9;">
+            URL para Insertar de Google Looker Studio (Embed URL)
+          </label>
+          <div style="display: flex; gap: 0.75rem; margin-top: 0.4rem; flex-wrap: wrap;">
+            <input type="url" 
+                   id="lookerStudioUrlInput" 
+                   name="looker_studio_url" 
+                   class="form-input" 
+                   placeholder="https://lookerstudio.google.com/embed/reporting/..." 
+                   value="{{.LookerStudioURL}}" 
+                   style="flex: 1; min-width: 280px; font-size: 0.9rem;">
+            <button type="submit" class="btn btn-primary" id="saveLookerBtn" style="padding: 0.65rem 1.4rem; white-space: nowrap;">
+              Vincular Dashboard
+            </button>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem; margin-bottom: 0;">
+            💡 <em>Para obtener este enlace: en tu informe de <a href="https://lookerstudio.google.com" target="_blank" style="color: var(--accent-gold);">Looker Studio</a>, hacé clic en Compartir ▾ &gt; <strong>Insertar informe</strong> &gt; Marcá "Habilitar inserción" y copiá la URL de "Insertar código" (solo la URL que empieza con <code>https://lookerstudio.google.com/embed/reporting/...</code>).</em>
+          </p>
+          <span id="lookerSaveStatus" style="font-size: 0.88rem; font-weight: 600; display: none; margin-top: 0.5rem;"></span>
+        </form>
+      </div>
+
+      <!-- Looker Studio Iframe Container -->
+      {{if .LookerStudioURL}}
+        <div style="margin-top: 1.5rem; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: #0b0f17;">
+          <iframe src="{{.LookerStudioURL}}" 
+                  style="width: 100%; height: 820px; border: 0; display: block;" 
+                  allowfullscreen 
+                  sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+        </div>
+      {{else}}
+        <div style="margin-top: 1.5rem; text-align: center; padding: 2.5rem 1.5rem; background: rgba(10, 14, 22, 0.4); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📊</div>
+          <h4 style="color: #f1f5f9; margin: 0 0 0.5rem 0; font-size: 1.15rem;">Tu Dashboard de Looker Studio aparecerá aquí</h4>
+          <p style="max-width: 540px; margin: 0 auto 1.25rem auto; font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
+            Google Looker Studio es una herramienta 100% gratuita de Google que te permite diseñar gráficos a medida con las visitas, marcas más consultadas y contactos de WhatsApp de Escocar sin escribir código.
+          </p>
+          <a href="https://lookerstudio.google.com/reporting/create" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 0.85rem;">
+            Crear Informe en Looker Studio ↗
+          </a>
+        </div>
+      {{end}}
+    </div>
+
+    <!-- Automotive eCommerce Events Grid -->
+    <div class="dashboard-card" style="margin-bottom: 2rem;">
+      <h3 style="margin: 0 0 0.4rem 0; font-size: 1.25rem;">Eventos de Retail Automotriz Monitoreados</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 1.5rem 0;">
+        Escocar despacha automáticamente a Google Analytics 4 los siguientes eventos de valor comercial sin que tengas que programar nada:
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #34d399; font-weight: 700; font-size: 0.9rem;">generate_lead (WhatsApp)</code>
+            <span class="badge-tag" style="background: rgba(52, 211, 153, 0.15); color: #34d399; font-size: 0.7rem;">Conversión Clave</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Se activa cada vez que un cliente toca un botón de WhatsApp para consultar por un vehículo específico o asesor general.
+          </p>
+        </div>
+
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #38bdf8; font-weight: 700; font-size: 0.9rem;">generate_lead (Formulario)</code>
+            <span class="badge-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.7rem;">Conversión Clave</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Se activa cuando el cliente completa sus datos de contacto y envía una solicitud de reserva o consulta web.
+          </p>
+        </div>
+
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #fbbf24; font-weight: 700; font-size: 0.9rem;">view_item</code>
+            <span class="badge-tag" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; font-size: 0.7rem;">Interés de Auto</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Registra el auto específico (marca, modelo, año) que el visitante está analizando detalladamente.
+          </p>
+        </div>
+
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #c084fc; font-weight: 700; font-size: 0.9rem;">finance_inquiry</code>
+            <span class="badge-tag" style="background: rgba(192, 132, 252, 0.15); color: #c084fc; font-size: 0.7rem;">Financiación</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Se dispara cuando un potencial comprador consulta por planes de financiación o anticipo.
+          </p>
+        </div>
+
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #f472b6; font-weight: 700; font-size: 0.9rem;">select_content</code>
+            <span class="badge-tag" style="background: rgba(244, 114, 182, 0.15); color: #f472b6; font-size: 0.7rem;">Navegación</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Mide los clics en vehículos desde el listado general, filtros por carrocería o autos recomendados.
+          </p>
+        </div>
+
+        <div style="background: rgba(15, 20, 29, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <code style="color: #94a3b8; font-weight: 700; font-size: 0.9rem;">page_duration & engagement</code>
+            <span class="badge-tag" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-size: 0.7rem;">Retención</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Calcula el tiempo real que los clientes dedican a inspeccionar fotos y especificaciones de cada auto.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Friendly Setup Guide (for non-tech users) -->
+    <div class="dashboard-card">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.3rem;">💡</span>
+        <h3 style="margin: 0; font-size: 1.25rem;">¿Cómo crear tu cuenta de Google Analytics y obtener tu ID? (Paso a Paso)</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 1.25rem 0;">
+        Si nunca utilizaste Google Analytics, seguí estos 3 pasos súper simples para empezar a medir hoy mismo:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #000; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem;">1</div>
+          <div>
+            <strong style="color: #fff; font-size: 0.95rem;">Entrá a Google Analytics</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+              Ingresá a <a href="https://analytics.google.com" target="_blank" style="color: var(--accent-gold); font-weight: 600;">analytics.google.com</a> con cualquier cuenta de Google (Gmail o Workspace). Hacé clic en <em>"Empezar a medir"</em> o <em>"Administrar" ⚙️</em>.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #000; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem;">2</div>
+          <div>
+            <strong style="color: #fff; font-size: 0.95rem;">Creá tu Propiedad para Escocar</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+              En <em>"Crear Propiedad"</em>, poné nombre <strong>Escocar Autos</strong>, zona horaria <strong>Argentina (GMT-3)</strong> y moneda <strong>Peso argentino (ARS)</strong> o <strong>Dólar (USD)</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #000; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem;">3</div>
+          <div>
+            <strong style="color: #fff; font-size: 0.95rem;">Elegí "Web" y copiá tu ID de Medición</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+              Seleccioná la plataforma <strong>Web</strong>, poné la URL <code>escocarautos.com.ar</code> y el nombre de flujo <em>Sitio Web Oficial</em>. Te mostrará un código que empieza con <strong>G-</strong> (por ejemplo <code>G-4ABC12XYZ9</code>). Copialo, pegalo en el casillero de arriba y hacé clic en <strong>Guardar ID de Analytics</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: SITE SETTINGS -->
+  <div class="tab-content" id="tab-settings">
+    <div class="dashboard-card" style="max-width: 720px; margin: 0 auto;">
+      <div class="card-title-row">
+        <div>
+          <h3>Configuración General del Sitio</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem;">
+            Ajustá los canales de contacto y las integraciones analíticas de Escocar.
+          </p>
+        </div>
+      </div>
+
+      <form id="settingsForm" style="margin-top: 1.5rem;">
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" for="settingWhatsApp" style="font-size: 0.95rem; font-weight: 600;">
+            Número de WhatsApp Oficial
+          </label>
+          <div style="position: relative; display: flex; align-items: center; margin-top: 0.4rem;">
+            <span style="position: absolute; left: 1rem; color: #25d366; font-size: 1.25rem;">💬</span>
+            <input type="text" 
+                   id="settingWhatsApp" 
+                   name="whatsapp_number" 
+                   class="form-input" 
+                   value="{{.WhatsApp}}" 
+                   placeholder="Ej: 5491123456789" 
+                   style="padding-left: 2.9rem; font-family: monospace; font-size: 1.05rem;"
+                   required>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 0.5rem; line-height: 1.4;">
+            Ingresá el número internacional sin signos ni espacios (para Argentina: código <code>54</code> + móvil <code>9</code> + código de área sin 0 + número sin 15). Podés escribirlo como prefieras; el sistema guardará los dígitos limpios automáticamente.
+          </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" for="settingGoogleAnalytics" style="font-size: 0.95rem; font-weight: 600;">
+            Google Analytics 4 - ID de Medición (Measurement ID)
+          </label>
+          <div style="position: relative; display: flex; align-items: center; margin-top: 0.4rem;">
+            <span style="position: absolute; left: 1rem; color: #38bdf8; font-size: 1.25rem;">📈</span>
+            <input type="text" 
+                   id="settingGoogleAnalytics" 
+                   name="google_analytics_id" 
+                   class="form-input" 
+                   value="{{.GoogleAnalyticsID}}" 
+                   placeholder="Ej: G-XXXXXXXXXX" 
+                   style="padding-left: 2.9rem; font-family: monospace; font-size: 1.05rem; text-transform: uppercase;">
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 0.5rem; line-height: 1.4;">
+            Identificador de tu propiedad de Google Analytics 4. Activa el rastreo de eventos, visitas y conversiones de WhatsApp automáticamente.
+          </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" for="settingLookerStudio" style="font-size: 0.95rem; font-weight: 600;">
+            Google Looker Studio - URL del Dashboard Incrustado
+          </label>
+          <div style="position: relative; display: flex; align-items: center; margin-top: 0.4rem;">
+            <span style="position: absolute; left: 1rem; color: #a855f7; font-size: 1.25rem;">📊</span>
+            <input type="url" 
+                   id="settingLookerStudio" 
+                   name="looker_studio_url" 
+                   class="form-input" 
+                   value="{{.LookerStudioURL}}" 
+                   placeholder="https://lookerstudio.google.com/embed/reporting/..." 
+                   style="padding-left: 2.9rem; font-size: 0.95rem;">
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 0.5rem; line-height: 1.4;">
+            Enlace de inserción (Embed URL) para mostrar tu tablero interactivo en la pestaña <strong>Google Analytics 4</strong>.
+          </p>
+        </div>
+
+        <div style="background: rgba(10, 13, 18, 0.55); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.75rem;">
+          <div style="font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>ℹ️</span> <span>Puntos de contacto vinculados al número de WhatsApp:</span>
+          </div>
+          <ul style="font-size: 0.82rem; color: var(--text-muted); margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Botón flotante</strong> de WhatsApp en la esquina de la pantalla.</li>
+            <li>Botón <strong>"Asesor Online"</strong> en el encabezado / menú de navegación.</li>
+            <li>Botones <strong>"WhatsApp"</strong> de cada ficha de auto en la portada y catálogo.</li>
+            <li>Botón <strong>"Consultar por WhatsApp"</strong> dentro del detalle de cada vehículo.</li>
+          </ul>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary" id="saveSettingsBtn" style="padding: 0.85rem 1.75rem;">
+            Guardar Configuración
+          </button>
+          <a id="testWhatsAppBtn" 
+             href="https://wa.me/{{.WhatsApp}}" 
+             target="_blank" 
+             class="btn btn-secondary" 
+             style="padding: 0.85rem 1.25rem;">
+            Probar WhatsApp ↗
+          </a>
+          <span id="settingsSaveStatus" style="font-size: 0.95rem; font-weight: 600; display: none;"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LEAD DETAIL & MANAGEMENT MODAL -->
+  <div class="lead-modal-backdrop" id="leadDetailModal">
+    <div class="lead-modal-box">
+      <div class="lead-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 style="margin: 0; font-size: 1.25rem;" id="leadModalTitle">Solicitud de Consulta</h3>
+          <span class="badge-tag" id="leadModalHeaderBadge">Nuevo</span>
+        </div>
+        <button type="button" class="modal-close" id="closeLeadDetailModal" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <div class="lead-modal-body">
+        <!-- Customer & Contact Info Card -->
+        <div style="background: rgba(15, 20, 29, 0.75); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; letter-spacing: 0.05em;">Cliente</div>
+              <h4 id="leadModalClientName" style="font-size: 1.3rem; margin: 0.2rem 0; color: #fff;">-</h4>
+              <div id="leadModalClientMeta" style="font-size: 0.8rem; color: var(--text-muted);">Recibido el -</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <a id="leadModalWaBtn" href="#" target="_blank" class="btn btn-sm" style="background: #25d366; color: #000; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; border-radius: 6px; text-decoration: none;">
+                <span>💬</span> WhatsApp
+              </a>
+              <a id="leadModalMailBtn" href="#" class="btn btn-sm btn-secondary" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; border-radius: 6px; text-decoration: none;">
+                <span>✉️</span> Email
+              </a>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.06);">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Teléfono / WhatsApp</span>
+              <strong id="leadModalPhone" style="font-size: 0.95rem; color: #f8fafc;">-</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Email</span>
+              <strong id="leadModalEmail" style="font-size: 0.95rem; color: #f8fafc;">-</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Vehículo de Interés</span>
+              <div id="leadModalCar">
+                <span id="leadModalCarText" style="font-weight: 700; color: var(--accent-gold);">-</span>
+              </div>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Actividad Web</span>
+              <div id="leadModalActivity" style="font-size: 0.85rem; color: #cbd5e1;">-</div>
+            </div>
+          </div>
+
+          <div id="leadModalCarsSeenContainer" style="margin-top: 0.75rem; display: none;">
+            <span style="font-size: 0.75rem; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">Autos que vio en el sitio:</span>
+            <div id="leadModalCarsSeenList"></div>
+          </div>
+        </div>
+
+        <!-- Customer Message Quote Box -->
+        <div>
+          <label class="form-label" style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: #e2e8f0; margin-bottom: 0.4rem;">
+            <span>💬</span> Mensaje / Consulta del Cliente:
+          </label>
+          <div id="leadModalMessage" style="background: rgba(226, 178, 93, 0.06); border: 1px solid rgba(226, 178, 93, 0.25); border-left: 3px solid var(--accent-gold); border-radius: var(--radius-sm); padding: 1rem 1.25rem; font-size: 0.95rem; color: #f1f5f9; line-height: 1.5; font-style: italic;">
+            -
+          </div>
+        </div>
+
+        <!-- Admin Management Panel -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+          <h4 style="margin: 0 0 1rem 0; font-size: 1rem; color: #f8fafc; display: flex; align-items: center; gap: 0.4rem;">
+            <span>⚙️</span> Gestión Comercial & Notas para Administradores
+          </h4>
+
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label class="form-label" for="leadStatusSelect">Estado de la Consulta</label>
+            <select id="leadStatusSelect" class="form-input" style="font-size: 0.95rem; font-weight: 600;">
+              <option value="nuevo">🔵 Nuevo (Sin contactar)</option>
+              <option value="en_gestion">🟡 En Gestión (Contactando / En negociación)</option>
+              <option value="contactado">🟣 Contactado (Esperando respuesta del cliente)</option>
+              <option value="visita_agendada">🟢 Visita Agendada (Viene a ver el auto al Showroom)</option>
+              <option value="cerrado_ganado">🏆 Vendido / Operación Concretada</option>
+              <option value="descartado">⚪ Descartado / No interesado</option>
+              <option value="archivado">🗄️ Archivado</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label class="form-label" for="leadNotesTextarea" style="margin: 0;">Notas Internas del Equipo</label>
+              <span id="leadLastUpdated" style="font-size: 0.75rem; color: var(--text-dim);"></span>
+            </div>
+            <textarea id="leadNotesTextarea" class="form-input" rows="4" placeholder="Ej: Habló Martín por WhatsApp. El cliente quiere entregar su Cruze 2019 con 45.000 km en parte de pago. Se pactó visita al showroom para el sábado a las 11:00 hs..."></textarea>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; margin-bottom: 0;">
+              🔒 <em>Estas notas son privadas y solo visibles para los administradores del sitio.</em>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="lead-modal-footer">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span id="leadModalSaveStatus" style="font-size: 0.9rem; font-weight: 600; display: none;"></span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary" id="cancelLeadDetailBtn">Cerrar</button>
+          <button type="button" class="btn btn-primary" id="saveLeadDetailBtn" style="padding: 0.65rem 1.5rem;">
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT CAR MODAL -->
+  <div class="lead-modal-backdrop" id="editCarModal">
+    <div class="lead-modal-box" style="max-width: 820px;">
+      <div class="lead-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 style="margin: 0; font-size: 1.25rem;">✏️ Modificar Vehículo</h3>
+          <span class="badge-tag" id="editCarHeaderBadge" style="background: rgba(226, 178, 93, 0.15); color: var(--accent-gold);">ID #</span>
+        </div>
+        <button type="button" class="modal-close" id="closeEditCarModal" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <form id="editCarForm" enctype="multipart/form-data">
+        <input type="hidden" name="id" id="editCarId">
+        <input type="hidden" name="featured_set" value="1">
+
+        <div class="lead-modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          
+          <!-- Row 1: Make & Model -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label" for="editCarMake">Marca *</label>
+              <input type="text" name="make" id="editCarMake" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarModel">Modelo y Versión *</label>
+              <input type="text" name="model" id="editCarModel" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Row 2: Payment, Currency, Price, DownPayment -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label" for="editCarCurrency">Moneda de Pago *</label>
+              <select name="currency" id="editCarCurrency" class="form-select" required>
+                <option value="USD">USD (Dólares)</option>
+                <option value="ARS">ARS (Pesos Argentinos)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarPrice">Precio Total *</label>
+              <input type="number" name="price" id="editCarPrice" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarDownPayment">Anticipo / Entrega Mínima</label>
+              <input type="number" name="down_payment" id="editCarDownPayment" class="form-input" placeholder="0 (Dejar en 0 si no aplica)">
+              <span style="font-size: 0.72rem; color: var(--text-dim);">En la misma moneda seleccionada</span>
+            </div>
+          </div>
+
+          <!-- Row 3: Year, Mileage, Doors -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label" for="editCarYear">Año *</label>
+              <input type="number" name="year" id="editCarYear" class="form-input" required min="1970" max="2027">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarMileage">Kilometraje (km) *</label>
+              <input type="number" name="mileage" id="editCarMileage" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarDoors">Puertas</label>
+              <input type="number" name="doors" id="editCarDoors" class="form-input">
+            </div>
+          </div>
+
+          <!-- Row 4: Body, Fuel, Transmission -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label" for="editCarBody">Carrocería / Tipo *</label>
+              <select name="body_type" id="editCarBody" class="form-select" required>
+                <option value="SUV">SUV</option>
+                <option value="Sedán">Sedán</option>
+                <option value="Coupé">Coupé</option>
+                <option value="Pickup">Pickup</option>
+                <option value="Hatchback">Hatchback</option>
+                <option value="Moto">Moto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarFuel">Combustible *</label>
+              <select name="fuel_type" id="editCarFuel" class="form-select" required>
+                <option value="Nafta">Nafta</option>
+                <option value="Diésel">Diésel</option>
+                <option value="Híbrido">Híbrido</option>
+                <option value="Eléctrico">100% Eléctrico</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarTrans">Transmisión *</label>
+              <select name="transmission" id="editCarTrans" class="form-select" required>
+                <option value="Automática">Automática</option>
+                <option value="Manual">Manual</option>
+                <option value="Secuencial">Secuencial</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 5: Color, Engine, Status, Featured -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label" for="editCarColor">Color Exterior</label>
+              <input type="text" name="color" id="editCarColor" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarEngine">Motor / Versión</label>
+              <input type="text" name="engine" id="editCarEngine" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarStatus">Estado *</label>
+              <select name="status" id="editCarStatus" class="form-select" required>
+                <option value="disponible">Disponible</option>
+                <option value="reservado">Reservado</option>
+                <option value="vendido">Vendido</option>
+                <option value="archivado">Archivado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCarFeatured">¿Destacado?</label>
+              <select name="featured" id="editCarFeatured" class="form-select">
+                <option value="false">No</option>
+                <option value="true">★ Sí (Destacado)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 6: Description -->
+          <div class="form-group">
+            <label class="form-label" for="editCarDescription">Descripción General</label>
+            <textarea name="description" id="editCarDescription" class="form-input" rows="3"></textarea>
+          </div>
+
+          <!-- Row 7: Features -->
+          <div class="form-group">
+            <label class="form-label" for="editCarFeatures">Equipamiento Destacado (un ítem por línea)</label>
+            <textarea name="features" id="editCarFeatures" class="form-input" rows="3"></textarea>
+          </div>
+
+          <!-- Row 8: Existing Gallery Photos -->
+          <div class="form-group" id="editCarExistingSection">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Fotos Actuales de la Galería</span>
+              <span style="font-size: 0.78rem; color: var(--text-dim);" id="editCarExistingCount"></span>
+            </label>
+            <div class="image-preview-grid" id="editCarExistingGrid"></div>
+            <input type="hidden" name="existing_images" id="editCarExistingImagesInput" value="[]">
+          </div>
+
+          <!-- Row 9: Add New Photos Dropzone -->
+          <div class="form-group">
+            <label class="form-label">Subir Más Fotos a la Galería</label>
+            <div class="dropzone-box" id="editCarDropzone">
+              <input type="file" id="editCarFileInput" multiple accept="image/jpeg,image/png,image/webp">
+              <div class="dropzone-content">
+                <span class="dropzone-icon">📸</span>
+                <div style="font-size: 1rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem;">
+                  Arrastrá nuevas fotos acá o hacé <span style="color: var(--accent-gold); text-decoration: underline;">clic para seleccionar</span>
+                </div>
+                <p style="font-size: 0.78rem; color: var(--text-dim); margin: 0;">
+                  Podés seleccionar o arrastrar varias imágenes juntas (JPG, PNG, WebP)
+                </p>
+              </div>
+            </div>
+            <div class="image-preview-grid" id="editCarPreviewGrid"></div>
+          </div>
+
+        </div>
+
+        <div class="lead-modal-footer">
+          <div>
+            <span id="editCarStatusMsg" style="font-size: 0.9rem; font-weight: 600; display: none;"></span>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" id="cancelEditCarBtn">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="saveEditCarBtn" style="padding: 0.65rem 1.5rem;">
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{{end}}
+
+{{define "extra_js"}}
+<script src="/static/js/admin.js?v=20261028-04"></script>
+{{end}}

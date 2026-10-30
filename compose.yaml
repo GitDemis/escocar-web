@@ -1,0 +1,47 @@
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: escocar_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: escocar
+      POSTGRES_PASSWORD: escocar_secure_password_2026
+      POSTGRES_DB: escocardb
+      TZ: America/Argentina/Buenos_Aires
+      PGTZ: America/Argentina/Buenos_Aires
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:Z
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "escocar", "-d", "escocardb"]
+      interval: 4s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  web:
+    image: us-central1-docker.pkg.dev/escocar-web/escocar-repo/escocar-web:latest
+    container_name: escocar_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      TZ: "America/Argentina/Buenos_Aires"
+      DATABASE_URL: "postgres://escocar:escocar_secure_password_2026@db:5432/escocardb?sslmode=disable"
+      UPLOAD_DIR: "/app/uploads"
+      ADMIN_USER: admin
+      ADMIN_PASS: escocar2026
+      ADMIN_DOMAIN: personalized.escocarautos.com.ar
+      AUTHORIZED_ADMINS: demis.godoy@gmail.com
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APP_ENV: production
+    volumes:
+      - ./uploads:/app/uploads:Z
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

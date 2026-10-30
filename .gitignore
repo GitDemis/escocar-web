@@ -1,0 +1,29 @@
+# Binaries
+escocar-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test and coverage artifacts
+*.out
+*.test
+
+# Environment files
+.env
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# SSL Certificates & Keys
+ssl/
+*.key
+*.crt

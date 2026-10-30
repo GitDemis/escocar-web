@@ -1,0 +1,166 @@
+{{define "content"}}
+
+<div class="section" style="padding-top: 3rem;">
+  <!-- Catalog Header -->
+  <div style="margin-bottom: 2.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem;">
+    <div>
+      <span class="section-tag">Inventario en Stock</span>
+      <h1 style="font-size: 2.5rem; margin-top: 0.3rem;">Catálogo de <span class="text-gold">Vehículos</span></h1>
+      <p style="margin-top: 0.5rem;">Explorá nuestras unidades seleccionadas con peritaje integral, documentación al día y financiación a medida.</p>
+    </div>
+    <div style="color: var(--text-muted); font-size: 0.95rem;">
+      Mostrando <strong style="color: #ffffff;">{{len .Cars}}</strong> vehículos disponibles
+    </div>
+  </div>
+
+  <!-- Filter & Sort Bar -->
+  <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 2.5rem; backdrop-filter: blur(20px);">
+    <form action="/catalogo" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto; gap: 1rem; align-items: flex-end;">
+      <div class="form-group">
+        <label class="form-label" for="filterQuery">Buscar</label>
+        <input type="text" name="q" id="filterQuery" class="form-input" placeholder="Ej: BMW, Audi..." value="">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="filterMake">Marca</label>
+        <select name="make" id="filterMake" class="form-select">
+          <option value="">Todas</option>
+          {{range .Makes}}
+          <option value="{{.}}" {{if eq . $.SelectedMake}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="filterBody">Carrocería</label>
+        <select name="body_type" id="filterBody" class="form-select">
+          <option value="">Todas</option>
+          <option value="SUV">SUV</option>
+          <option value="Sedán">Sedán</option>
+          <option value="Coupé">Coupé</option>
+          <option value="Pickup">Pickup</option>
+          <option value="Moto">Moto</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="filterFuel">Combustible</label>
+        <select name="fuel_type" id="filterFuel" class="form-select">
+          <option value="">Todos</option>
+          <option value="Nafta">Nafta</option>
+          <option value="Híbrido">Híbrido</option>
+          <option value="Eléctrico">Eléctrico</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="filterSort">Ordenar Por</label>
+        <select name="sort_by" id="filterSort" class="form-select">
+          <option value="">Relevancia / Destacados</option>
+          <option value="price_asc">Menor Precio</option>
+          <option value="price_desc">Mayor Precio</option>
+          <option value="year_desc">Más Nuevos</option>
+          <option value="mileage_asc">Menor Kilometraje</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary" id="applyCatalogFiltersBtn">
+          Filtrar
+        </button>
+        <a href="/catalogo" class="btn btn-secondary" title="Limpiar filtros" id="resetCatalogFiltersBtn">
+          ↺
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Car Grid -->
+  <div class="car-grid" id="catalogCarGrid">
+    {{range .Cars}}
+    <article class="car-card" id="catalogCard{{.ID}}">
+      <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-current-index="0">
+        <a href="/auto/{{.ID}}" class="card-carousel-link" data-track="car_view" data-car-id="{{.ID}}">
+          <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" loading="lazy">
+        </a>
+        {{if gt (len .Images) 1}}
+        <button type="button" class="card-carousel-nav prev" aria-label="Foto anterior" title="Foto anterior">&#8249;</button>
+        <button type="button" class="card-carousel-nav next" aria-label="Siguiente foto" title="Siguiente foto">&#8250;</button>
+        <div class="card-carousel-counter">
+          <span class="carousel-current">1</span>/<span class="carousel-total">{{len .Images}}</span>
+        </div>
+        <div class="card-carousel-dots">
+          {{range $idx, $img := .Images}}
+          <span class="carousel-dot {{if eq $idx 0}}active{{end}}" data-index="{{$idx}}"></span>
+          {{end}}
+        </div>
+        {{end}}
+        {{if eq .Status "reservado"}}
+          <span class="car-badge-pill car-badge-reserved">Reservado</span>
+        {{else if eq .Status "vendido"}}
+          <span class="car-badge-pill car-badge-sold">Vendido</span>
+        {{else if .Featured}}
+          <span class="car-badge-pill car-badge-featured">Destacado</span>
+        {{else}}
+          <span class="car-badge-pill">{{.BodyType}}</span>
+        {{end}}
+      </div>
+
+      <div class="car-body">
+        <div class="car-header">
+          <div>
+            <div class="car-make">{{.Make}}</div>
+            <h3 class="car-model"><a href="/auto/{{.ID}}">{{.Model}}</a></h3>
+          </div>
+          <div class="car-year">{{.Year}}</div>
+        </div>
+
+        <div class="car-price-block">
+          <div class="car-price">{{.FormattedPrice}}</div>
+          {{if .HasDownPayment}}
+          <div style="font-size: 0.82rem; font-weight: 600; color: #38bdf8; margin-top: 0.15rem;">Anticipo: {{.FormattedDownPayment}}</div>
+          {{end}}
+        </div>
+
+        <div class="car-specs">
+          <div class="spec-item">
+            <span class="spec-label">Kilometraje</span>
+            <span class="spec-val">{{.FormattedMileage}}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Combustible</span>
+            <span class="spec-val">{{.FuelType}}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Caja</span>
+            <span class="spec-val">{{.Transmission}}</span>
+          </div>
+        </div>
+
+        <div class="car-footer">
+          <a href="/auto/{{.ID}}" class="btn btn-secondary btn-sm" data-track="car_view" data-car-id="{{.ID}}">
+            Ver Ficha
+          </a>
+          <a href="https://wa.me/{{if $.WhatsApp}}{{$.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20me%20interesa%20el%20veh%C3%ADculo%20{{.Make}}%20{{.Model}}%20({{.Year}})%20publicado%20en%20{{.FormattedPrice}}" 
+             target="_blank" 
+             class="btn btn-whatsapp btn-sm" 
+             data-track="whatsapp" 
+             data-car-id="{{.ID}}" 
+             data-car-name="{{.Make}} {{.Model}}">
+            WhatsApp
+          </a>
+        </div>
+      </div>
+    </article>
+    {{else}}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 5rem 2rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+      <h3>No encontramos vehículos con esos criterios</h3>
+      <p style="margin: 0.5rem 0 1.5rem 0; color: var(--text-muted);">Probá restableciendo los filtros o consultanos por WhatsApp para encargues especiales.</p>
+      <a href="/catalogo" class="btn btn-primary">Ver Todos los Vehículos</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+{{end}}

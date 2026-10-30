@@ -1,0 +1,322 @@
+{{define "content"}}
+
+<!-- Hero Section -->
+<section class="hero" id="heroSection">
+  <div class="hero-bg">
+    <img src="/static/img/hero_showroom.jpg" alt="Showroom Escocar Autos" id="heroShowroomImg">
+  </div>
+  <div class="hero-overlay"></div>
+
+  <div class="hero-container">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        La Experiencia de Manejar <span class="text-gold">Lo Extraordinario</span>
+      </h1>
+      <p class="hero-subtitle">
+        Selección exclusiva de vehículos seleccionados, motos y deportivos con peritaje certificado, entrega inmediata y documentación al día.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="/catalogo" class="btn btn-primary" id="heroCatalogCta">
+          Explorar Inventario
+        </a>
+        <a href="#contacto" class="btn btn-secondary" id="heroContactCta">
+          Agendar Test Drive
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Search Widget -->
+    <div class="search-widget" id="quickSearchWidget">
+      <form action="/catalogo" method="GET" class="search-form">
+        <div class="form-group">
+          <label class="form-label" for="searchMake">Marca</label>
+          <select name="make" id="searchMake" class="form-select">
+            <option value="">Todas las Marcas</option>
+            {{range .Makes}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="searchBody">Carrocería</label>
+          <select name="body_type" id="searchBody" class="form-select">
+            <option value="">Cualquier Tipo</option>
+            <option value="SUV">SUV</option>
+            <option value="Sedán">Sedán</option>
+            <option value="Coupé">Coupé</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Moto">Moto</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="searchFuel">Combustible</label>
+          <select name="fuel_type" id="searchFuel" class="form-select">
+            <option value="">Todos</option>
+            <option value="Nafta">Nafta</option>
+            <option value="Híbrido">Híbrido</option>
+            <option value="Eléctrico">100% Eléctrico</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="searchMaxPrice">Precio Hasta</label>
+          <select name="max_price" id="searchMaxPrice" class="form-select">
+            <option value="">Sin Límite</option>
+            <option value="120000">USD 120.000</option>
+            <option value="150000">USD 150.000</option>
+            <option value="200000">USD 200.000</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="searchSubmitBtn">
+          Buscar
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Vehicles -->
+<section class="section" id="destacados">
+  <div class="section-header">
+    <span class="section-tag">Unidades Seleccionadas</span>
+    <h2 class="section-title">Vehículos <span class="text-gold">Destacados</span></h2>
+    <p class="section-desc">
+      Unidades con peritaje exhaustivo, kilometraje comprobado y entrega inmediata en nuestro showroom central.
+    </p>
+  </div>
+
+  <div class="car-grid" id="featuredCarGrid">
+    {{range .FeaturedCars}}
+    <article class="car-card" id="carCard{{.ID}}">
+      <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-current-index="0">
+        <a href="/auto/{{.ID}}" class="card-carousel-link" data-track="car_view" data-car-id="{{.ID}}">
+          <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" loading="lazy">
+        </a>
+        {{if gt (len .Images) 1}}
+        <button type="button" class="card-carousel-nav prev" aria-label="Foto anterior" title="Foto anterior">&#8249;</button>
+        <button type="button" class="card-carousel-nav next" aria-label="Siguiente foto" title="Siguiente foto">&#8250;</button>
+        <div class="card-carousel-counter">
+          <span class="carousel-current">1</span>/<span class="carousel-total">{{len .Images}}</span>
+        </div>
+        <div class="card-carousel-dots">
+          {{range $idx, $img := .Images}}
+          <span class="carousel-dot {{if eq $idx 0}}active{{end}}" data-index="{{$idx}}"></span>
+          {{end}}
+        </div>
+        {{end}}
+        {{if eq .Status "reservado"}}
+          <span class="car-badge-pill car-badge-reserved">Reservado</span>
+        {{else if eq .Status "vendido"}}
+          <span class="car-badge-pill car-badge-sold">Vendido</span>
+        {{else if .Featured}}
+          <span class="car-badge-pill car-badge-featured">Destacado</span>
+        {{else}}
+          <span class="car-badge-pill">{{.BodyType}}</span>
+        {{end}}
+      </div>
+
+      <div class="car-body">
+        <div class="car-header">
+          <div>
+            <div class="car-make">{{.Make}}</div>
+            <h3 class="car-model"><a href="/auto/{{.ID}}">{{.Model}}</a></h3>
+          </div>
+          <div class="car-year">{{.Year}}</div>
+        </div>
+
+        <div class="car-price-block">
+          <div class="car-price">{{.FormattedPrice}}</div>
+          {{if .HasDownPayment}}
+          <div style="font-size: 0.82rem; font-weight: 600; color: #38bdf8; margin-top: 0.15rem;">Anticipo: {{.FormattedDownPayment}}</div>
+          {{end}}
+        </div>
+
+        <div class="car-specs">
+          <div class="spec-item">
+            <span class="spec-label">Kilometraje</span>
+            <span class="spec-val">{{.FormattedMileage}}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Combustible</span>
+            <span class="spec-val">{{.FuelType}}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Caja</span>
+            <span class="spec-val">{{.Transmission}}</span>
+          </div>
+        </div>
+
+        <div class="car-footer">
+          <a href="/auto/{{.ID}}" class="btn btn-secondary btn-sm" data-track="car_view" data-car-id="{{.ID}}" id="btnView{{.ID}}">
+            Ver Ficha
+          </a>
+          <a href="https://wa.me/{{if $.WhatsApp}}{{$.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20me%20interesa%20el%20veh%C3%ADculo%20{{.Make}}%20{{.Model}}%20({{.Year}})%20publicado%20en%20{{.FormattedPrice}}" 
+             target="_blank" 
+             class="btn btn-whatsapp btn-sm" 
+             data-track="whatsapp" 
+             data-car-id="{{.ID}}" 
+             data-car-name="{{.Make}} {{.Model}}"
+             id="btnWa{{.ID}}">
+            WhatsApp
+          </a>
+        </div>
+      </div>
+    </article>
+    {{else}}
+      <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted);">
+        No hay vehículos destacados disponibles en este momento.
+      </div>
+    {{end}}
+  </div>
+
+  <div style="text-align: center; margin-top: 3.5rem;">
+    <a href="/catalogo" class="btn btn-secondary" id="viewAllCatalogBtn">
+      Ver Todo el Catálogo ({{len .Cars}} Unidades Disponibles) →
+    </a>
+  </div>
+</section>
+
+<!-- Trust & Value Proposition -->
+<section class="section" id="nosotros" style="background: rgba(18, 23, 33, 0.4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+  <div class="section-header">
+    <span class="section-tag">Por Qué Elegirnos</span>
+    <h2 class="section-title">El Estándar <span class="text-gold">Escocar</span></h2>
+    <p class="section-desc">
+      Comprar o vender un vehículo debe ser una experiencia transparente, segura y placentera.
+    </p>
+  </div>
+
+  <div class="trust-grid">
+    <div class="trust-card">
+      <div class="trust-icon">📋</div>
+      <h3 class="trust-title">Documentación al Día</h3>
+      <p>Todas nuestras unidades cuentan con peritaje legal exhaustivo, documentación al día y listas para transferir de inmediato.</p>
+    </div>
+
+    <div class="trust-card">
+      <div class="trust-icon">🔍</div>
+      <h3 class="trust-title">Peritaje 150 Puntos</h3>
+      <p>Inspección técnica exhaustiva de chasis, electrónica, tren delantero, frenos y verificación de historial legal.</p>
+    </div>
+
+    <div class="trust-card">
+      <div class="trust-icon">💳</div>
+      <h3 class="trust-title">Financiación a Medida</h3>
+      <p>Créditos prendarios con entrega inmediata y planes en cuotas fijas en pesos o dólares adaptados a tu flujo de ingresos.</p>
+    </div>
+
+    <div class="trust-card">
+      <div class="trust-icon">🔄</div>
+      <h3 class="trust-title">Tomamos Tu Usado</h3>
+      <p>Cotizamos tu vehículo actual al mejor valor de plaza para que lo entregues como parte de pago sin complicaciones.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Valuation CTA Banner -->
+<section class="section" id="servicios">
+  <div style="background: linear-gradient(135deg, rgba(23, 33, 51, 0.9), rgba(15, 20, 29, 0.95)); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 3.5rem 2.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;">
+    <div style="max-width: 620px;">
+      <span class="text-gold" style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tasación Inmediata</span>
+      <h2 style="margin: 0.5rem 0 1rem 0; font-size: 2.2rem;">¿Querés cambiar tu auto hoy mismo?</h2>
+      <p style="font-size: 1.05rem; line-height: 1.6;">
+        Traé tu vehículo a nuestro showroom o envianos los datos por WhatsApp. Te realizamos una oferta en el acto para renovar tu unidad.
+      </p>
+    </div>
+    <div>
+      <a href="#" class="btn btn-primary" data-open-modal="lead" data-car-name="Tasación de Usado" id="btnOpenTasacionModal">
+        Cotizar Mi Vehículo Ahora
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Dónde Estamos / Showroom & Map -->
+<section class="section" id="contacto">
+  <div class="section-header">
+    <span class="section-tag">Visitanos en Nuestro Showroom</span>
+    <h2 class="section-title">Dónde <span class="text-gold">Estamos</span></h2>
+    <p class="section-desc">
+      Vení a conocer nuestras unidades en persona, realizar peritajes presenciales o coordinar la entrega de tu próximo auto.
+    </p>
+  </div>
+
+  <div class="location-card-grid">
+    <!-- Info Column -->
+    <div class="location-info-card">
+      <div class="location-badge">Showroom Central Escobar</div>
+      <h3 style="font-size: 1.7rem; margin-bottom: 1.25rem; color: #ffffff;">Escocar Autos</h3>
+
+      <div class="location-item">
+        <div class="location-icon">📍</div>
+        <div>
+          <div class="location-item-label">Dirección</div>
+          <div class="location-item-val">
+            <strong style="color: var(--accent-gold-light); font-size: 1.05rem;">Dr. Travi 970</strong><br>
+            <span>B1625DXD Belén de Escobar, Provincia de Buenos Aires</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="location-item">
+        <div class="location-icon">🕒</div>
+        <div>
+          <div class="location-item-label">Horarios de Atención</div>
+          <div class="location-item-val">
+            Lunes a Viernes: <strong>09:00 a 19:30 hs.</strong><br>
+            Sábados: <strong>10:00 a 16:00 hs.</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="location-item">
+        <div class="location-icon">🚗</div>
+        <div>
+          <div class="location-item-label">Acceso & Estacionamiento</div>
+          <div class="location-item-val" style="color: var(--text-muted); font-size: 0.9rem;">
+            A pocas cuadras del centro comercial de Belén de Escobar, con acceso rápido y directo desde Panamericana (Ramal Campana / Escobar). Disponemos de estacionamiento para clientes.
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+        <a href="https://maps.google.com/?q=Dr.+Travi+970,+B1625DXD+Bel%C3%A9n+de+Escobar,+Provincia+de+Buenos+Aires" 
+           target="_blank" 
+           class="btn btn-secondary" 
+           style="justify-content: center; gap: 0.5rem; padding: 0.85rem;"
+           id="btnGoogleMapsRoute">
+          🗺️ Abrir en Google Maps / Cómo Llegar
+        </a>
+        <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20quisiera%20coordinar%20una%20visita%20al%20showroom%20de%20Dr.%20Travi%20970" 
+           target="_blank" 
+           class="btn btn-whatsapp" 
+           style="justify-content: center; gap: 0.5rem; padding: 0.85rem;" 
+           data-track="whatsapp" 
+           data-car-name="Visita Showroom"
+           id="btnShowroomVisitWa">
+          💬 Coordinar Visita por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Map Column -->
+    <div class="location-map-wrapper">
+      <iframe 
+        title="Ubicación Escocar - Dr. Travi 970, Belén de Escobar"
+        src="https://maps.google.com/maps?q=Dr.+Travi+970,+B1625DXD+Bel%C3%A9n+de+Escobar,+Provincia+de+Buenos+Aires&t=&z=16&ie=UTF8&iwloc=&output=embed" 
+        width="100%" 
+        height="100%" 
+        style="border:0; min-height: 440px; width: 100%; display: block;" 
+        allowfullscreen="" 
+        loading="lazy" 
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+  </div>
+</section>
+
+{{end}}
