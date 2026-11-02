@@ -4,21 +4,34 @@
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
 
-  // 1. Tab Navigation
+  // 1. Tab Navigation (Left Lateral Dock)
   const tabs = document.querySelectorAll('.admin-tab');
   const panels = document.querySelectorAll('.tab-content');
+
+  function activateAdminTab(target) {
+    if (!target) return;
+    const panel = document.getElementById(target);
+    if (!panel) return;
+    tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === target));
+    panels.forEach(p => p.classList.toggle('active', p.id === target));
+    try {
+      sessionStorage.setItem('escocar_admin_active_tab', target);
+    } catch (e) {}
+  }
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.getAttribute('data-tab');
-      tabs.forEach(t => t.classList.remove('active'));
-      panels.forEach(p => p.classList.remove('active'));
-
-      tab.classList.add('active');
-      const panel = document.getElementById(target);
-      if (panel) panel.classList.add('active');
+      activateAdminTab(target);
     });
   });
+
+  try {
+    const savedTab = sessionStorage.getItem('escocar_admin_active_tab');
+    if (savedTab && document.getElementById(savedTab)) {
+      activateAdminTab(savedTab);
+    }
+  } catch (e) {}
 
   // Helpers for file uploads
   function isImageFile(file) {
@@ -1013,5 +1026,161 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // 7. Featured Cars Drag & Drop Reordering + Quick Toggle
+  const featuredSortableGrid = document.getElementById('featuredSortableGrid');
+  const saveFeaturedOrderBtn = document.getElementById('saveFeaturedOrderBtn');
+  const featuredOrderStatus = document.getElementById('featuredOrderStatus');
+  let draggedFeaturedCard = null;
+
+  function refreshFeaturedOrderBadges() {
+    if (!featuredSortableGrid) return;
+    const cards = featuredSortableGrid.querySelectorAll('.featured-sort-card');
+    cards.forEach((card, index) => {
+      const badge = card.querySelector('[data-order-badge]');
+      if (badge) {
+        badge.textContent = `#${index + 1}`;
+      }
+    });
+  }
+
+  async function persistFeaturedOrder(showAlertOnError = true) {
+    if (!featuredSortableGrid) return;
+    const cards = Array.from(featuredSortableGrid.querySelectorAll('.featured-sort-card'));
+    const carIds = cards
+      .map(c => parseInt(c.getAttribute('data-car-id'), 10))
+      .filter(n => !isNaN(n));
+
+    if (saveFeaturedOrderBtn) {
+      saveFeaturedOrderBtn.disabled = true;
+      saveFeaturedOrderBtn.textContent = 'Guardando...';
+    }
+
+    try {
+      const res = await fetch('/api/cars/featured-order', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ car_ids: carIds })
+      });
+
+      if (res.ok) {
+        if (featuredOrderStatus) {
+          featuredOrderStatus.style.display = 'inline-block';
+          featuredOrderStatus.textContent = '✓ Orden guardado en inicio';
+          setTimeout(() => {
+            featuredOrderStatus.style.display = 'none';
+          }, 3000);
+        }
+      } else if (showAlertOnError) {
+        alert('Error al guardar el orden de destacados: ' + (await res.text()));
+      }
+    } catch (err) {
+      if (showAlertOnError) {
+        alert('Error de conexión al guardar el orden de destacados');
+      }
+    } finally {
+      if (saveFeaturedOrderBtn) {
+        saveFeaturedOrderBtn.disabled = false;
+        saveFeaturedOrderBtn.textContent = '💾 Guardar Orden';
+      }
+    }
+  }
+
+  if (featuredSortableGrid) {
+    featuredSortableGrid.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.featured-sort-card');
+      if (!card) return;
+      draggedFeaturedCard = card;
+      card.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.getAttribute('data-car-id') || '');
+      }
+    });
+
+    featuredSortableGrid.addEventListener('dragend', () => {
+      if (draggedFeaturedCard) {
+        draggedFeaturedCard.classList.remove('dragging');
+        draggedFeaturedCard = null;
+      }
+      featuredSortableGrid.querySelectorAll('.featured-sort-card').forEach(c => c.classList.remove('drag-over'));
+      refreshFeaturedOrderBadges();
+      persistFeaturedOrder(false);
+    });
+
+    featuredSortableGrid.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!draggedFeaturedCard) return;
+      const targetCard = e.target.closest('.featured-sort-card');
+      if (!targetCard || targetCard === draggedFeaturedCard) return;
+
+      const rect = targetCard.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const midY = rect.top + rect.height / 2;
+      const insertAfter = (e.clientY > midY + 25) || (Math.abs(e.clientY - midY) <= 25 && e.clientX > midX);
+
+      if (insertAfter) {
+        featuredSortableGrid.insertBefore(draggedFeaturedCard, targetCard.nextSibling);
+      } else {
+        featuredSortableGrid.insertBefore(draggedFeaturedCard, targetCard);
+      }
+      refreshFeaturedOrderBadges();
+    });
+
+    // Click arrows to move card left/right (great for touch / mobile)
+    featuredSortableGrid.addEventListener('click', (e) => {
+      const moveBtn = e.target.closest('.btn-move-card');
+      if (!moveBtn) return;
+      e.preventDefault();
+      const card = moveBtn.closest('.featured-sort-card');
+      if (!card) return;
+      const dir = moveBtn.getAttribute('data-move-dir');
+      if (dir === 'prev' && card.previousElementSibling) {
+        featuredSortableGrid.insertBefore(card, card.previousElementSibling);
+        refreshFeaturedOrderBadges();
+        persistFeaturedOrder(false);
+      } else if (dir === 'next' && card.nextElementSibling) {
+        featuredSortableGrid.insertBefore(card.nextElementSibling, card);
+        refreshFeaturedOrderBadges();
+        persistFeaturedOrder(false);
+      }
+    });
+  }
+
+  if (saveFeaturedOrderBtn) {
+    saveFeaturedOrderBtn.addEventListener('click', () => {
+      persistFeaturedOrder(true);
+    });
+  }
+
+  // Toggle Featured Status on any vehicle
+  document.addEventListener('click', async (e) => {
+    const toggleBtn = e.target.closest('[data-toggle-featured]');
+    if (!toggleBtn) return;
+    e.preventDefault();
+
+    const carId = toggleBtn.getAttribute('data-toggle-featured');
+    const currentlyFeatured = toggleBtn.getAttribute('data-featured') === 'true';
+    const nextFeatured = !currentlyFeatured;
+    toggleBtn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/cars/${carId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: nextFeatured })
+      });
+
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert('No se pudo actualizar estado de destacado: ' + (await res.text()));
+        toggleBtn.disabled = false;
+      }
+    } catch (err) {
+      alert('Error de conexión al actualizar destacado');
+      toggleBtn.disabled = false;
+    }
+  });
 });
 

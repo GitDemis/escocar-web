@@ -869,7 +869,79 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  cursor: zoom-in;
   transition: opacity 0.2s ease;
+}
+
+.gallery-expand-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(10, 15, 23, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  z-index: 8;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.gallery-expand-btn:hover {
+  background: var(--accent-gold);
+  color: #0b0f17;
+  border-color: var(--accent-gold);
+  transform: scale(1.05);
+}
+
+.card-carousel-expand {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(10, 15, 23, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 8;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.card-carousel:hover .card-carousel-expand {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (max-width: 768px) {
+  .card-carousel-expand {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
+
+.card-carousel-expand:hover {
+  background: var(--accent-gold);
+  color: #0b0f17;
+  border-color: var(--accent-gold);
+  transform: scale(1.12);
 }
 
 .gallery-main-nav {
@@ -1656,4 +1728,485 @@ body.modal-open {
     text-align: center;
   }
 }
+
+/* ==========================================================================
+   Floating Lightbox Gallery with Backdrop Blur & Pan/Zoom
+   ========================================================================== */
+.lightbox-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lightbox-modal.open {
+  display: flex;
+  opacity: 1;
+}
+
+body.lightbox-open {
+  overflow: hidden !important;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 16, 0.88);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  z-index: 1;
+}
+
+.lightbox-container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.lightbox-header {
+  height: 60px;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 14, 22, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  flex-shrink: 0;
+  gap: 1rem;
+}
+
+.lightbox-info {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.lightbox-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 450px;
+}
+
+.lightbox-counter-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-gold-light);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  white-space: nowrap;
+}
+
+.lightbox-badge-quality {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lightbox-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.lightbox-zoom-controls {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  padding: 0.15rem 0.35rem;
+}
+
+.lightbox-zoom-level {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: center;
+  font-weight: 600;
+  user-select: none;
+}
+
+.lightbox-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--accent-gold);
+  transform: scale(1.08);
+}
+
+.lightbox-btn-close {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.lightbox-btn-close:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.lightbox-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 0.25rem;
+}
+
+.lightbox-stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.lightbox-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: default;
+}
+
+.lightbox-transform-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 92vw;
+  max-height: calc(100vh - 180px);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.lightbox-transform-container.smooth {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: calc(100vh - 180px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+  cursor: zoom-in;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox-img.zoomed {
+  cursor: grab;
+}
+
+.lightbox-img.zoomed.grabbing {
+  cursor: grabbing;
+}
+
+.lightbox-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.lightbox-nav-btn:hover {
+  background: var(--accent-gold);
+  color: #0b0f17;
+  border-color: var(--accent-gold);
+  transform: translateY(-50%) scale(1.12);
+}
+
+.lightbox-nav-btn.prev {
+  left: 1.5rem;
+}
+
+.lightbox-nav-btn.next {
+  right: 1.5rem;
+}
+
+.lightbox-hint-bar {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 1.1rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.lightbox-thumbs-bar {
+  height: 85px;
+  background: rgba(10, 14, 22, 0.75);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 1.5rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lightbox-thumbs-inner {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 0.25rem 0.5rem;
+  scrollbar-width: thin;
+}
+
+.lightbox-thumb-item {
+  width: 78px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.lightbox-thumb-item:hover, .lightbox-thumb-item.active {
+  opacity: 1;
+  border-color: var(--accent-gold);
+  transform: scale(1.05);
+}
+
+.lightbox-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .lightbox-header {
+    height: 52px;
+    padding: 0 0.85rem;
+  }
+  .lightbox-title {
+    max-width: 180px;
+    font-size: 0.92rem;
+  }
+  .lightbox-counter-badge {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+  }
+  .lightbox-nav-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.8rem;
+  }
+  .lightbox-nav-btn.prev {
+    left: 0.5rem;
+  }
+  .lightbox-nav-btn.next {
+    right: 0.5rem;
+  }
+  .lightbox-hint-bar {
+    display: none;
+  }
+  .lightbox-thumbs-bar {
+    height: 70px;
+    padding: 0.25rem 0.5rem;
+  }
+  .lightbox-thumb-item {
+    width: 60px;
+    height: 40px;
+  }
+  .lightbox-transform-container, .lightbox-img {
+    max-width: 96vw;
+    max-height: calc(100vh - 140px);
+  }
+}
+
+/* ==========================================================================
+   FIRST VISIT OF THE DAY - SELL YOUR CAR PROMPT
+   ========================================================================== */
+
+.daily-sell-prompt {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  max-width: 440px;
+  width: calc(100% - 4rem);
+  background: rgba(16, 20, 29, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 0, 0, 0.35);
+  border-left: 4px solid var(--accent-red);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 2.25rem 1.15rem 1.25rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75), 0 0 25px rgba(255, 0, 0, 0.15);
+  z-index: 1800;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(24px) scale(0.97);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.4s;
+  pointer-events: none;
+}
+
+.daily-sell-prompt.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.daily-sell-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.daily-sell-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 0, 0, 0.14);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.daily-sell-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #f1f5f9;
+}
+
+.daily-sell-link {
+  color: var(--accent-red-light);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.daily-sell-link:hover {
+  color: #ffffff;
+}
+
+.daily-sell-link-wa {
+  color: #25d366;
+}
+
+.daily-sell-link-wa:hover {
+  color: #4ade80;
+}
+
+.daily-sell-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.daily-sell-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .daily-sell-prompt {
+    left: 1rem;
+    right: 1rem;
+    bottom: 5.5rem;
+    width: auto;
+    max-width: none;
+  }
+}
+
 

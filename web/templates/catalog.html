@@ -39,7 +39,10 @@
           <option value="Sedán">Sedán</option>
           <option value="Coupé">Coupé</option>
           <option value="Pickup">Pickup</option>
+          <option value="Hatchback">Hatchback</option>
           <option value="Moto">Moto</option>
+          <option value="Utilitario">Utilitario</option>
+          <option value="Náutica">Náutica</option>
         </select>
       </div>
 
@@ -48,6 +51,8 @@
         <select name="fuel_type" id="filterFuel" class="form-select">
           <option value="">Todos</option>
           <option value="Nafta">Nafta</option>
+          <option value="Nafta/GNC">Nafta/GNC</option>
+          <option value="Diésel">Diésel</option>
           <option value="Híbrido">Híbrido</option>
           <option value="Eléctrico">Eléctrico</option>
         </select>
@@ -79,10 +84,13 @@
   <div class="car-grid" id="catalogCarGrid">
     {{range .Cars}}
     <article class="car-card" id="catalogCard{{.ID}}">
-      <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-current-index="0">
+      <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-car-name="{{.Make}} {{.Model}} ({{.Year}})" data-current-index="0">
         <a href="/auto/{{.ID}}" class="card-carousel-link" data-track="car_view" data-car-id="{{.ID}}">
           <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" loading="lazy">
         </a>
+        <button type="button" class="card-carousel-expand" title="Ver fotos en pantalla completa" aria-label="Ampliar galería">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </button>
         {{if gt (len .Images) 1}}
         <button type="button" class="card-carousel-nav prev" aria-label="Foto anterior" title="Foto anterior">&#8249;</button>
         <button type="button" class="card-carousel-nav next" aria-label="Siguiente foto" title="Siguiente foto">&#8250;</button>

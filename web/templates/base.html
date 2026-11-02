@@ -92,7 +92,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/static/img/logochicosq.png">
   <link rel="apple-touch-icon" href="/static/img/logochicosq.png">
-  <link rel="stylesheet" href="/static/css/style.css?v=20261028-04">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261102-01">
   {{if and .GoogleAnalyticsID (not .IsAdmin)}}
   <!-- Google tag (gtag.js) - Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id={{.GoogleAnalyticsID}}"></script>
@@ -260,6 +260,19 @@
     💬
   </a>
 
+  {{if not .IsAdmin}}
+  <!-- First Visit of the Day - Sell Your Car Prompt -->
+  <div class="daily-sell-prompt" id="dailySellPrompt" role="dialog" aria-live="polite" aria-hidden="true">
+    <button type="button" class="daily-sell-close" id="closeDailySellPrompt" aria-label="Cerrar mensaje">&times;</button>
+    <div class="daily-sell-content">
+      <div class="daily-sell-icon">🚗</div>
+      <p class="daily-sell-text">
+        Si estas pensando en vender tu auto y te interesa hacerlo con nosotros, hacé click <a href="#" id="dailySellLeadLink" class="daily-sell-link">acá</a> o escribinos por <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar,%20estoy%20pensando%20en%20vender%20mi%20auto%20y%20me%20interesa%20hacerlo%20con%20ustedes" target="_blank" rel="noopener" id="dailySellWaLink" class="daily-sell-link daily-sell-link-wa" data-track="whatsapp" data-car-name="Venta / Consignación de Vehículo">whatsapp</a>
+      </p>
+    </div>
+  </div>
+  {{end}}
+
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-container">
@@ -280,6 +293,7 @@
           <li><a href="/catalogo?body_type=SUV">SUVs & Crossovers</a></li>
           <li><a href="/catalogo?body_type=Sedán">Sedanes Ejecutivos</a></li>
           <li><a href="/catalogo?body_type=Coupé">Deportivos & Coupés</a></li>
+          <li><a href="/catalogo?body_type=Náutica">Náutica (Lanchas & Motos de Agua)</a></li>
           <li><a href="/catalogo?fuel_type=Eléctrico">Eléctricos & Híbridos</a></li>
           <li><a href="/catalogo?featured=true">Destacados de la Semana</a></li>
         </ul>
@@ -319,9 +333,65 @@
     </div>
   </footer>
 
+  <!-- Floating Lightbox Gallery with Backdrop Blur & Pan/Zoom -->
+  <div class="lightbox-modal" id="imageLightboxModal" aria-hidden="true" role="dialog" aria-label="Galería de imágenes en alta resolución">
+    <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+    
+    <div class="lightbox-container">
+      <!-- Lightbox Header / Controls -->
+      <div class="lightbox-header">
+        <div class="lightbox-info">
+          <span class="lightbox-title" id="lightboxTitle">Escocar</span>
+          <span class="lightbox-counter-badge" id="lightboxCounter">1 / 1</span>
+          <span class="lightbox-badge-quality" id="lightboxQualityBadge" style="display: none;">Alta Resolución</span>
+        </div>
+        <div class="lightbox-actions">
+          <div class="lightbox-zoom-controls">
+            <button type="button" class="lightbox-btn" id="lightboxZoomOutBtn" title="Alejar zoom (-)" aria-label="Alejar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <span class="lightbox-zoom-level" id="lightboxZoomLevel">100%</span>
+            <button type="button" class="lightbox-btn" id="lightboxZoomInBtn" title="Acercar zoom (+)" aria-label="Acercar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <button type="button" class="lightbox-btn" id="lightboxResetZoomBtn" title="Restablecer tamaño (1:1)" aria-label="Restablecer tamaño">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+            </button>
+          </div>
+          <div class="lightbox-divider"></div>
+          <button type="button" class="lightbox-btn lightbox-btn-close" id="lightboxCloseBtn" title="Cerrar (Esc)" aria-label="Cerrar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Stage -->
+      <div class="lightbox-stage" id="lightboxStage">
+        <button type="button" class="lightbox-nav-btn prev" id="lightboxPrevBtn" title="Foto anterior (←)" aria-label="Foto anterior">&#8249;</button>
+        
+        <div class="lightbox-viewport" id="lightboxViewport">
+          <div class="lightbox-transform-container" id="lightboxTransformContainer">
+            <img src="" alt="" class="lightbox-img" id="lightboxImg" draggable="false">
+          </div>
+        </div>
+
+        <button type="button" class="lightbox-nav-btn next" id="lightboxNextBtn" title="Siguiente foto (→)" aria-label="Siguiente foto">&#8250;</button>
+
+        <div class="lightbox-hint-bar" id="lightboxHintBar">
+          <span>💡 Doble clic o rueda para zoom · Arrastrá para recorrer los detalles</span>
+        </div>
+      </div>
+
+      <!-- Bottom Thumbnails Strip -->
+      <div class="lightbox-thumbs-bar" id="lightboxThumbsBar">
+        <div class="lightbox-thumbs-inner" id="lightboxThumbsInner"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script src="/static/js/tracker.js?v=20261028-04"></script>
-  <script src="/static/js/app.js?v=20261028-04"></script>
+  <script src="/static/js/tracker.js?v=20261102-01"></script>
+  <script src="/static/js/app.js?v=20261102-01"></script>
   {{block "extra_js" .}}{{end}}
 </body>
 </html>

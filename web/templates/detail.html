@@ -114,8 +114,12 @@
   <div class="detail-container">
     <!-- Left Column: Gallery & Description -->
     <div>
-      <div class="gallery-main" id="mainGalleryWrapper">
-        <img id="mainGalleryImg" src="{{.SelectedCar.PrimaryImage}}" alt="{{.SelectedCar.Make}} {{.SelectedCar.Model}}" data-current-index="0">
+      <div class="gallery-main" id="mainGalleryWrapper" data-images='{{.SelectedCar.ImagesJSON}}' data-car-name="{{.SelectedCar.Make}} {{.SelectedCar.Model}} ({{.SelectedCar.Year}})">
+        <img id="mainGalleryImg" src="{{.SelectedCar.PrimaryImage}}" alt="{{.SelectedCar.Make}} {{.SelectedCar.Model}}" data-current-index="0" title="Hacé clic para ampliar la imagen en pantalla completa">
+        <button type="button" class="gallery-expand-btn" id="galleryExpandBtn" title="Ampliar galería en alta resolución" aria-label="Ampliar galería">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <span>Ampliar</span>
+        </button>
         {{if gt (len .SelectedCar.Images) 1}}
         <button type="button" class="gallery-main-nav prev" id="galleryPrevBtn" aria-label="Foto anterior" title="Foto anterior">&#8249;</button>
         <button type="button" class="gallery-main-nav next" id="galleryNextBtn" aria-label="Siguiente foto" title="Siguiente foto">&#8250;</button>

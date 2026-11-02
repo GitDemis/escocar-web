@@ -154,6 +154,7 @@ func (d *DB) initSchema() error {
 	INSERT INTO site_settings (key, value) VALUES ('looker_studio_url', '') ON CONFLICT (key) DO NOTHING;
 
 	ALTER TABLE cars ADD COLUMN IF NOT EXISTS down_payment NUMERIC(12,2) DEFAULT 0;
+	ALTER TABLE cars ADD COLUMN IF NOT EXISTS featured_order INT DEFAULT 0;
 	ALTER TABLE admin_sessions ALTER COLUMN token TYPE VARCHAR(255);
 
 	ALTER TABLE leads ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
@@ -175,6 +176,7 @@ func (d *DB) initSchema() error {
 
 	CREATE INDEX IF NOT EXISTS idx_cars_status ON cars(status);
 	CREATE INDEX IF NOT EXISTS idx_cars_featured ON cars(featured);
+	CREATE INDEX IF NOT EXISTS idx_cars_featured_order ON cars(featured, featured_order);
 	CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 	CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at);
 	CREATE INDEX IF NOT EXISTS idx_page_views_visitor ON page_views(visitor_id);
@@ -329,7 +331,7 @@ func (d *DB) GetCars(filter models.CarFilter) ([]models.Car, error) {
 	query := `
 		SELECT id, make, model, year, price, currency, COALESCE(down_payment, 0), mileage, fuel_type, 
 		       transmission, body_type, color, doors, engine, description, 
-		       features, images, status, featured, views_count, created_at, updated_at
+		       features, images, status, featured, COALESCE(featured_order, 0), views_count, created_at, updated_at
 		FROM cars
 		WHERE 1=1
 	`
@@ -349,7 +351,7 @@ func (d *DB) GetCars(filter models.CarFilter) ([]models.Car, error) {
 	}
 
 	if filter.BodyType != "" {
-		query += fmt.Sprintf(" AND LOWER(body_type) = LOWER($%d)", idx)
+		query += fmt.Sprintf(" AND TRANSLATE(LOWER(body_type), 'áéíóú', 'aeiou') = TRANSLATE(LOWER($%d), 'áéíóú', 'aeiou')", idx)
 		args = append(args, filter.BodyType)
 		idx++
 	}
@@ -412,7 +414,7 @@ func (d *DB) GetCars(filter models.CarFilter) ([]models.Car, error) {
 	case "mileage_asc":
 		query += " ORDER BY mileage ASC"
 	default:
-		query += " ORDER BY featured DESC, id DESC"
+		query += " ORDER BY featured DESC, CASE WHEN COALESCE(featured_order, 0) > 0 THEN featured_order ELSE 999999 END ASC, id DESC"
 	}
 
 	rows, err := d.Query(query, args...)
@@ -429,7 +431,7 @@ func (d *DB) GetCars(filter models.CarFilter) ([]models.Car, error) {
 			&c.ID, &c.Make, &c.Model, &c.Year, &c.Price, &c.Currency, &c.DownPayment,
 			&c.Mileage, &c.FuelType, &c.Transmission, &c.BodyType, &c.Color,
 			&c.Doors, &c.Engine, &c.Description, &featuresStr, &imagesStr,
-			&c.Status, &c.Featured, &c.ViewsCount, &c.CreatedAt, &c.UpdatedAt,
+			&c.Status, &c.Featured, &c.FeaturedOrder, &c.ViewsCount, &c.CreatedAt, &c.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -447,7 +449,7 @@ func (d *DB) GetCarByID(id int) (*models.Car, error) {
 	query := `
 		SELECT id, make, model, year, price, currency, COALESCE(down_payment, 0), mileage, fuel_type, 
 		       transmission, body_type, color, doors, engine, description, 
-		       features, images, status, featured, views_count, created_at, updated_at
+		       features, images, status, featured, COALESCE(featured_order, 0), views_count, created_at, updated_at
 		FROM cars
 		WHERE id = $1
 	`
@@ -457,7 +459,7 @@ func (d *DB) GetCarByID(id int) (*models.Car, error) {
 		&c.ID, &c.Make, &c.Model, &c.Year, &c.Price, &c.Currency, &c.DownPayment,
 		&c.Mileage, &c.FuelType, &c.Transmission, &c.BodyType, &c.Color,
 		&c.Doors, &c.Engine, &c.Description, &featuresStr, &imagesStr,
-		&c.Status, &c.Featured, &c.ViewsCount, &c.CreatedAt, &c.UpdatedAt,
+		&c.Status, &c.Featured, &c.FeaturedOrder, &c.ViewsCount, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -469,11 +471,14 @@ func (d *DB) GetCarByID(id int) (*models.Car, error) {
 }
 
 func (d *DB) CreateCar(c *models.Car) error {
+	if c.Featured && c.FeaturedOrder == 0 {
+		_ = d.QueryRow("SELECT COALESCE(MAX(featured_order), 0) + 1 FROM cars WHERE featured = true").Scan(&c.FeaturedOrder)
+	}
 	query := `
 		INSERT INTO cars (make, model, year, price, currency, down_payment, mileage, fuel_type, 
 		                 transmission, body_type, color, doors, engine, description, 
-		                 features, images, status, featured, views_count)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+		                 features, images, status, featured, featured_order, views_count)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 		RETURNING id, created_at, updated_at
 	`
 	featuresJSON := c.FeaturesJSON()
@@ -483,19 +488,23 @@ func (d *DB) CreateCar(c *models.Car) error {
 		query,
 		c.Make, c.Model, c.Year, c.Price, c.Currency, c.DownPayment, c.Mileage, c.FuelType,
 		c.Transmission, c.BodyType, c.Color, c.Doors, c.Engine, c.Description,
-		featuresJSON, imagesJSON, c.Status, c.Featured, c.ViewsCount,
+		featuresJSON, imagesJSON, c.Status, c.Featured, c.FeaturedOrder, c.ViewsCount,
 	).Scan(&c.ID, &c.CreatedAt, &c.UpdatedAt)
 }
 
 func (d *DB) UpdateCar(c *models.Car) error {
+	if c.Featured && c.FeaturedOrder == 0 {
+		_ = d.QueryRow("SELECT COALESCE(MAX(featured_order), 0) + 1 FROM cars WHERE featured = true AND id != $1", c.ID).Scan(&c.FeaturedOrder)
+	}
 	query := `
 		UPDATE cars SET 
 			make = $1, model = $2, year = $3, price = $4, currency = $5, down_payment = $6,
 			mileage = $7, fuel_type = $8, transmission = $9, body_type = $10,
 			color = $11, doors = $12, engine = $13, description = $14,
 			features = $15, images = $16, status = $17, featured = $18,
+			featured_order = $19,
 			updated_at = NOW()
-		WHERE id = $19
+		WHERE id = $20
 	`
 	featuresJSON := c.FeaturesJSON()
 	imagesJSON := c.ImagesJSON()
@@ -504,7 +513,7 @@ func (d *DB) UpdateCar(c *models.Car) error {
 		query,
 		c.Make, c.Model, c.Year, c.Price, c.Currency, c.DownPayment, c.Mileage, c.FuelType,
 		c.Transmission, c.BodyType, c.Color, c.Doors, c.Engine, c.Description,
-		featuresJSON, imagesJSON, c.Status, c.Featured, c.ID,
+		featuresJSON, imagesJSON, c.Status, c.Featured, c.FeaturedOrder, c.ID,
 	)
 	return err
 }
@@ -512,6 +521,37 @@ func (d *DB) UpdateCar(c *models.Car) error {
 func (d *DB) UpdateCarStatus(id int, status string) error {
 	_, err := d.Exec("UPDATE cars SET status = $1, updated_at = NOW() WHERE id = $2", status, id)
 	return err
+}
+
+func (d *DB) UpdateCarFeatured(id int, featured bool) error {
+	if featured {
+		_, err := d.Exec(`
+			UPDATE cars
+			SET featured = true,
+			    featured_order = CASE WHEN COALESCE(featured_order, 0) > 0 THEN featured_order ELSE (SELECT COALESCE(MAX(featured_order), 0) + 1 FROM cars WHERE featured = true) END,
+			    updated_at = NOW()
+			WHERE id = $1
+		`, id)
+		return err
+	}
+	_, err := d.Exec("UPDATE cars SET featured = false, featured_order = 0, updated_at = NOW() WHERE id = $1", id)
+	return err
+}
+
+func (d *DB) UpdateFeaturedOrder(carIDs []int) error {
+	tx, err := d.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for i, id := range carIDs {
+		order := i + 1
+		if _, err := tx.Exec("UPDATE cars SET featured_order = $1, featured = true, updated_at = NOW() WHERE id = $2", order, id); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (d *DB) DeleteCar(id int) error {

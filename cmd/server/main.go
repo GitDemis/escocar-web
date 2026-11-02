@@ -81,6 +81,8 @@ func main() {
 		r.Get("/leads/{id}", adminHandler.GetLeadByID)
 		r.Put("/leads/{id}", adminHandler.UpdateLead)
 		r.Delete("/leads/{id}", adminHandler.DeleteLead)
+		r.Put("/cars/featured-order", adminHandler.UpdateFeaturedOrder)
+		r.Post("/cars/featured-order", adminHandler.UpdateFeaturedOrder)
 		r.Get("/cars", carHandler.List)
 		r.Get("/cars/{id}", carHandler.GetByID)
 		r.Post("/cars", adminHandler.CreateCar)

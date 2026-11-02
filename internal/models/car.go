@@ -24,9 +24,10 @@ type Car struct {
 	Description  string    `json:"description"`
 	Features     []string  `json:"features"`
 	Images       []string  `json:"images"`
-	Status       string    `json:"status"` // disponible, reservado, vendido
-	Featured     bool      `json:"featured"`
-	ViewsCount   int       `json:"views_count"`
+	Status        string    `json:"status"` // disponible, reservado, vendido
+	Featured      bool      `json:"featured"`
+	FeaturedOrder int       `json:"featured_order"`
+	ViewsCount    int       `json:"views_count"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

@@ -233,6 +233,7 @@ func (h *PageHandler) CarDetail(w http.ResponseWriter, r *http.Request) {
 
 func (h *PageHandler) Admin(w http.ResponseWriter, r *http.Request) {
 	cars, _ := h.db.GetCars(models.CarFilter{IncludeArchived: true})
+	featured, _ := h.db.GetCars(models.CarFilter{FeaturedOnly: true})
 	analytics, _ := h.db.GetAnalyticsSummary()
 	leads, _ := h.db.GetLeads()
 	adminSession := h.getAdminSession(r)
@@ -240,6 +241,7 @@ func (h *PageHandler) Admin(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		Title:             "Panel de Control | Escocar Autos",
 		Cars:              cars,
+		FeaturedCars:      featured,
 		Analytics:         analytics,
 		Leads:             leads,
 		Config:            h.cfg,

@@ -650,22 +650,38 @@ func (h *AdminHandler) UpdateCar(w http.ResponseWriter, r *http.Request) {
 
 	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		var req struct {
-			Status string `json:"status"`
+			Status   string `json:"status"`
+			Featured *bool  `json:"featured"`
 		}
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err == nil {
-			if err := json.Unmarshal(bodyBytes, &req); err == nil && req.Status != "" && len(bodyBytes) < 80 {
-				if err := h.db.UpdateCarStatus(id, req.Status); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+			if err := json.Unmarshal(bodyBytes, &req); err == nil && len(bodyBytes) < 120 {
+				if req.Status != "" && req.Featured == nil {
+					if err := h.db.UpdateCarStatus(id, req.Status); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					w.WriteHeader(http.StatusOK)
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
+						"status":     "success",
+						"car_id":     id,
+						"new_status": req.Status,
+					})
 					return
 				}
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(map[string]interface{}{
-					"status":     "success",
-					"car_id":     id,
-					"new_status": req.Status,
-				})
-				return
+				if req.Featured != nil && req.Status == "" {
+					if err := h.db.UpdateCarFeatured(id, *req.Featured); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					w.WriteHeader(http.StatusOK)
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
+						"status":   "success",
+						"car_id":   id,
+						"featured": *req.Featured,
+					})
+					return
+				}
 			}
 			_ = json.Unmarshal(bodyBytes, car)
 		}
@@ -790,6 +806,27 @@ func (h *AdminHandler) UpdateCar(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(car)
+}
+
+func (h *AdminHandler) UpdateFeaturedOrder(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CarIDs []int `json:"car_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Cuerpo JSON inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.UpdateFeaturedOrder(req.CarIDs); err != nil {
+		http.Error(w, "Error al actualizar orden de destacados: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"car_ids": req.CarIDs,
+	})
 }
 
 func (h *AdminHandler) DeleteCar(w http.ResponseWriter, r *http.Request) {

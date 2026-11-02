@@ -1,53 +1,71 @@
 {{define "extra_css"}}
-<link rel="stylesheet" href="/static/css/admin.css?v=20261028-04">
+<link rel="stylesheet" href="/static/css/admin.css?v=20261102-01">
 {{end}}
 
 {{define "content"}}
-<div class="admin-header">
-  <div class="admin-header-container">
-    <div>
-      <span class="text-gold" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Panel de Control</span>
-      <h1 style="font-size: 1.8rem; margin-top: 0.2rem;">Escocar Management & Analytics</h1>
+<div class="admin-layout">
+  <!-- LEFT LATERAL DOCK -->
+  <aside class="admin-dock" id="adminLeftDock" aria-label="Menú de Administración">
+    <div class="admin-dock-brand">
+      <span class="text-gold" style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Panel de Control</span>
+      <h1 class="admin-dock-title">Escocar Admin</h1>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 1.5rem;">
-      <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="tab-analytics" id="tabBtnAnalytics">
-          📊 Analíticas & Tráfico
-        </button>
-        <button class="admin-tab" data-tab="tab-google-analytics" id="tabBtnGoogleAnalytics">
-          📈 Google Analytics 4
-        </button>
-        <button class="admin-tab" data-tab="tab-inventory" id="tabBtnInventory">
-          🚗 Inventario ({{len .Cars}})
-        </button>
-        <button class="admin-tab" data-tab="tab-leads" id="tabBtnLeads">
-          📬 Leads & Consultas ({{len .Leads}})
-        </button>
-        <button class="admin-tab" data-tab="tab-new-car" id="tabBtnNewCar">
-          ➕ Agregar Auto
-        </button>
-        <button class="admin-tab" data-tab="tab-settings" id="tabBtnSettings">
-          ⚙️ Configuración
-        </button>
-      </div>
+    <nav class="admin-tabs admin-dock-nav">
+      <button class="admin-tab active" data-tab="tab-analytics" id="tabBtnAnalytics">
+        <span class="admin-tab-icon">📊</span>
+        <span class="admin-tab-label">Analíticas & Tráfico</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-google-analytics" id="tabBtnGoogleAnalytics">
+        <span class="admin-tab-icon">📈</span>
+        <span class="admin-tab-label">Google Analytics 4</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-inventory" id="tabBtnInventory">
+        <span class="admin-tab-icon">🚗</span>
+        <span class="admin-tab-label">Inventario</span>
+        <span class="admin-tab-badge">{{len .Cars}}</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-featured" id="tabBtnFeatured">
+        <span class="admin-tab-icon">⭐</span>
+        <span class="admin-tab-label">Destacados</span>
+        <span class="admin-tab-badge" id="featuredDockCountBadge">{{len .FeaturedCars}}</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-leads" id="tabBtnLeads">
+        <span class="admin-tab-icon">📬</span>
+        <span class="admin-tab-label">Leads & Consultas</span>
+        <span class="admin-tab-badge">{{len .Leads}}</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-new-car" id="tabBtnNewCar">
+        <span class="admin-tab-icon">➕</span>
+        <span class="admin-tab-label">Agregar Vehículo</span>
+      </button>
+      <button class="admin-tab" data-tab="tab-settings" id="tabBtnSettings">
+        <span class="admin-tab-icon">⚙️</span>
+        <span class="admin-tab-label">Configuración</span>
+      </button>
+    </nav>
 
-      {{if .AdminSession}}
-      <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.4); padding: 0.35rem 0.85rem; border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
+    {{if .AdminSession}}
+    <div class="admin-dock-footer">
+      <div class="admin-dock-user">
         {{if .AdminSession.Picture}}
-          <img src="{{.AdminSession.Picture}}" alt="Admin" style="width: 28px; height: 28px; border-radius: 50%;">
+          <img src="{{.AdminSession.Picture}}" alt="Admin" class="admin-dock-avatar">
         {{else}}
-          <span style="font-size: 1.1rem;">👤</span>
+          <span class="admin-dock-avatar-fallback">👤</span>
         {{end}}
-        <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;">{{.AdminSession.Email}}</span>
-        <a href="/auth/logout" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: var(--radius-full); margin-left: 0.25rem;" title="Cerrar sesión">Salir</a>
+        <div class="admin-dock-user-info">
+          <span class="admin-dock-user-name">{{.AdminSession.Name}}</span>
+          <span class="admin-dock-user-email" title="{{.AdminSession.Email}}">{{.AdminSession.Email}}</span>
+        </div>
       </div>
-      {{end}}
+      <a href="/auth/logout" class="btn btn-secondary btn-sm admin-dock-logout" title="Cerrar sesión">Salir</a>
     </div>
-  </div>
-</div>
+    {{end}}
+  </aside>
 
-<div class="section" style="padding-top: 0;">
+  <!-- MAIN ADMIN WORKSPACE -->
+  <div class="admin-main">
+    <div class="admin-main-container">
 
   <!-- TAB 1: ANALYTICS & VISITOR TRACKING -->
   <div class="tab-content active" id="tab-analytics">
@@ -246,11 +264,21 @@
   <!-- TAB 2: INVENTORY MANAGEMENT -->
   <div class="tab-content" id="tab-inventory">
     <div class="dashboard-card">
-      <div class="card-title-row">
-        <h3>Inventario de Vehículos en Stock</h3>
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('tabBtnNewCar').click()">
-          + Publicar Nuevo Vehículo
-        </button>
+      <div class="card-title-row" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3>Inventario de Vehículos en Stock</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Administrá las unidades publicadas, cambiá estados o marcá cuáles querés destacar en el inicio.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="document.getElementById('tabBtnFeatured').click()">
+            ⭐ Ordenar Destacados ({{len .FeaturedCars}})
+          </button>
+          <button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('tabBtnNewCar').click()">
+            + Publicar Nuevo Vehículo
+          </button>
+        </div>
       </div>
 
       <table class="admin-table">
@@ -294,7 +322,9 @@
               </select>
             </td>
             <td>
-              {{if .Featured}}<span style="color: var(--accent-gold);">★ Sí</span>{{else}}<span style="color: var(--text-dim);">No</span>{{end}}
+              <button type="button" class="btn-toggle-featured {{if .Featured}}is-featured{{end}}" data-toggle-featured="{{.ID}}" data-featured="{{if .Featured}}true{{else}}false{{end}}" title="Clic para destacar o quitar de destacados">
+                {{if .Featured}}★ Sí{{else}}☆ No{{end}}
+              </button>
             </td>
             <td>{{.ViewsCount}}</td>
             <td>
@@ -309,6 +339,99 @@
           {{end}}
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- TAB 2B: FEATURED CARS ORDERING (DRAG & DROP CARDS) -->
+  <div class="tab-content" id="tab-featured">
+    <div class="dashboard-card">
+      <div class="card-title-row" style="flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.35rem;">⭐</span>
+            <h3 style="margin: 0;">Orden de Vehículos Destacados en Inicio</h3>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.3rem;">
+            Arrastrá y soltá las tarjetas para acomodar los autos destacados en el orden exacto que querés que se muestren en la página principal.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <span id="featuredOrderStatus" class="featured-order-status" style="display: none;"></span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveFeaturedOrderBtn">
+            💾 Guardar Orden
+          </button>
+          <a href="/#destacados" target="_blank" class="btn btn-secondary btn-sm">
+            Ver en Inicio ↗
+          </a>
+        </div>
+      </div>
+
+      {{if .FeaturedCars}}
+      <div class="featured-sortable-grid" id="featuredSortableGrid">
+        {{range $idx, $car := .FeaturedCars}}
+        <div class="featured-sort-card" draggable="true" data-car-id="{{$car.ID}}" id="featuredCard{{$car.ID}}">
+          <div class="featured-sort-thumb">
+            <img src="{{$car.PrimaryImage}}" alt="{{$car.Make}} {{$car.Model}}" draggable="false">
+            <span class="featured-order-badge" data-order-badge>#{{add $idx 1}}</span>
+            <div class="featured-drag-hint" title="Arrastrar para mover">⠿ Mover</div>
+            <span class="featured-type-pill">{{$car.BodyType}}</span>
+          </div>
+          <div class="featured-sort-body">
+            <div class="featured-sort-make">{{$car.Make}} • {{$car.Year}}</div>
+            <h4 class="featured-sort-title">{{$car.Model}}</h4>
+            <div class="featured-sort-price">{{$car.FormattedPrice}}</div>
+            <div class="featured-sort-actions">
+              <div class="featured-move-btns">
+                <button type="button" class="btn-move-card" data-move-dir="prev" title="Mover antes (izquierda/arriba)">←</button>
+                <button type="button" class="btn-move-card" data-move-dir="next" title="Mover después (derecha/abajo)">→</button>
+              </div>
+              <div style="display: flex; gap: 0.35rem;">
+                <button type="button" class="btn btn-secondary btn-sm" data-edit-car="{{$car.ID}}" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;" title="Editar">✏️</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-toggle-featured="{{$car.ID}}" data-featured="true" style="padding: 0.3rem 0.55rem; font-size: 0.78rem; color: #f87171;" title="Quitar de Destacados">✕ Quitar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <div style="text-align: center; padding: 3.5rem 1.5rem; background: rgba(10, 14, 22, 0.45); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⭐</div>
+        <h4>No hay vehículos marcados como Destacados</h4>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.4rem;">
+          Podés destacar cualquier vehículo desde la lista de abajo o desde la pestaña Inventario.
+        </p>
+      </div>
+      {{end}}
+    </div>
+
+    <!-- Non-featured vehicles in stock that can be added to Featured with 1 click -->
+    <div class="dashboard-card">
+      <div class="card-title-row">
+        <div>
+          <h4>Agregar otros vehículos en stock a Destacados</h4>
+          <p style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Hacé clic en <strong>+ Destacar</strong> para sumar una unidad a la portada y ordenarla arriba.
+          </p>
+        </div>
+      </div>
+      <div class="non-featured-mini-grid">
+        {{range .Cars}}
+          {{if and (not .Featured) (ne .Status "archivado")}}
+          <div class="non-featured-mini-card">
+            <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}}">
+            <div class="non-featured-mini-info">
+              <div style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 700;">{{.Make}} ({{.Year}}) • {{.BodyType}}</div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">{{.Model}}</div>
+              <div style="font-size: 0.85rem; color: var(--text-muted);">{{.FormattedPrice}}</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" data-toggle-featured="{{.ID}}" data-featured="false" style="white-space: nowrap;">
+              + Destacar
+            </button>
+          </div>
+          {{end}}
+        {{end}}
+      </div>
     </div>
   </div>
 
@@ -483,7 +606,7 @@
 
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.25rem;">
           <div class="form-group">
-            <label class="form-label" for="carBody">Carrocería / Tipo *</label>
+            <label class="form-label" for="carBody">Carrocería / Tipo de Vehículo *</label>
             <select name="body_type" id="carBody" class="form-select" required>
               <option value="SUV">SUV</option>
               <option value="Sedán">Sedán</option>
@@ -491,6 +614,8 @@
               <option value="Pickup">Pickup</option>
               <option value="Hatchback">Hatchback</option>
               <option value="Moto">Moto</option>
+              <option value="Utilitario">Utilitario</option>
+              <option value="Náutica">Náutica (Lanchas / Motos de Agua)</option>
             </select>
           </div>
 
@@ -498,6 +623,7 @@
             <label class="form-label" for="carFuel">Combustible *</label>
             <select name="fuel_type" id="carFuel" class="form-select" required>
               <option value="Nafta">Nafta</option>
+              <option value="Nafta/GNC">Nafta/GNC</option>
               <option value="Diésel">Diésel</option>
               <option value="Híbrido">Híbrido</option>
               <option value="Eléctrico">100% Eléctrico</option>
@@ -509,6 +635,7 @@
             <select name="transmission" id="carTrans" class="form-select" required>
               <option value="Automática">Automática</option>
               <option value="Manual">Manual</option>
+              <option value="Directa / Náutica">Directa / Náutica</option>
             </select>
           </div>
         </div>
@@ -1149,7 +1276,7 @@
           <!-- Row 4: Body, Fuel, Transmission -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
             <div class="form-group">
-              <label class="form-label" for="editCarBody">Carrocería / Tipo *</label>
+              <label class="form-label" for="editCarBody">Carrocería / Tipo de Vehículo *</label>
               <select name="body_type" id="editCarBody" class="form-select" required>
                 <option value="SUV">SUV</option>
                 <option value="Sedán">Sedán</option>
@@ -1157,12 +1284,15 @@
                 <option value="Pickup">Pickup</option>
                 <option value="Hatchback">Hatchback</option>
                 <option value="Moto">Moto</option>
+                <option value="Utilitario">Utilitario</option>
+                <option value="Náutica">Náutica (Lanchas / Motos de Agua)</option>
               </select>
             </div>
             <div class="form-group">
               <label class="form-label" for="editCarFuel">Combustible *</label>
               <select name="fuel_type" id="editCarFuel" class="form-select" required>
                 <option value="Nafta">Nafta</option>
+                <option value="Nafta/GNC">Nafta/GNC</option>
                 <option value="Diésel">Diésel</option>
                 <option value="Híbrido">Híbrido</option>
                 <option value="Eléctrico">100% Eléctrico</option>
@@ -1174,6 +1304,7 @@
                 <option value="Automática">Automática</option>
                 <option value="Manual">Manual</option>
                 <option value="Secuencial">Secuencial</option>
+                <option value="Directa / Náutica">Directa / Náutica</option>
               </select>
             </div>
           </div>
@@ -1263,9 +1394,11 @@
     </div>
   </div>
 
+    </div>
+  </div>
 </div>
 {{end}}
 
 {{define "extra_js"}}
-<script src="/static/js/admin.js?v=20261028-04"></script>
+<script src="/static/js/admin.js?v=20261102-01"></script>
 {{end}}
