@@ -1,4 +1,4 @@
-.PHONY: up down logs build test restart
+.PHONY: up down logs build test restart pull-secrets push-secrets
 
 up:
 	podman-compose up -d --build
@@ -32,6 +32,14 @@ auth-registry:
 
 push-image: build-image auth-registry
 	podman push $(IMAGE_NAME)
+
+pull-secrets:
+	gcloud secrets versions access latest --secret=escocar-web-env --project=$(PROJECT) > .env
+	@echo "Archivo .env sincronizado exitosamente desde GCP Secret Manager."
+
+push-secrets:
+	gcloud secrets versions add escocar-web-env --data-file=.env --project=$(PROJECT)
+	@echo "Nuevo secreto escocar-web-env subido a GCP Secret Manager."
 
 deploy: push-image
 	gcloud compute scp compose.yaml "$(VM_NAME):~/escocar-web/compose.yaml" --zone "$(VM_ZONE)" --project "$(PROJECT)"
