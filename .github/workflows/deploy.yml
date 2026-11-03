@@ -5,8 +5,15 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  IMAGE_NAME: us-central1-docker.pkg.dev/escocar-web/escocar-repo/escocar-web:latest
+  VM_NAME: instance-20261025-153912
+  VM_ZONE: us-central1-a
+  PROJECT: escocar-web
+
 jobs:
-  deploy:
+  build_and_deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -20,9 +27,31 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Deploy via gcloud compute ssh
+      - name: Build Docker Image
+        run: docker build -t ${{ env.IMAGE_NAME }} -f Containerfile .
+
+      - name: Authenticate Docker to Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Push Docker Image
+        run: docker push ${{ env.IMAGE_NAME }}
+
+      - name: Ensure remote directory exists
         run: |
-          gcloud compute ssh ${{ secrets.GCP_VM_NAME }} \
-            --zone=${{ secrets.GCP_ZONE }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="cd ${{ secrets.WORK_DIR }} && git pull origin main && podman-compose down && podman-compose up -d --build"
+          gcloud compute ssh ${{ secrets.SSH_USERNAME }}@${{ env.VM_NAME }} \
+            --zone=${{ env.VM_ZONE }} \
+            --project=${{ env.PROJECT }} \
+            --command="mkdir -p ~/escocar-web"
+
+      - name: Copy compose.yaml to VM
+        run: |
+          gcloud compute scp compose.yaml ${{ secrets.SSH_USERNAME }}@${{ env.VM_NAME }}:~/escocar-web/compose.yaml \
+            --zone ${{ env.VM_ZONE }} \
+            --project ${{ env.PROJECT }}
+
+      - name: Deploy on VM
+        run: |
+          gcloud compute ssh ${{ secrets.SSH_USERNAME }}@${{ env.VM_NAME }} \
+            --zone=${{ env.VM_ZONE }} \
+            --project=${{ env.PROJECT }} \
+            --command="gcloud auth configure-docker ${{ env.REGISTRY }} --quiet && podman pull ${{ env.IMAGE_NAME }} && cd ~/escocar-web && podman-compose down && podman-compose up -d"
