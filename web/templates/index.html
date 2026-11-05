@@ -3,17 +3,17 @@
 <!-- Hero Section -->
 <section class="hero" id="heroSection">
   <div class="hero-bg">
-    <img src="/static/img/hero_showroom.jpg" alt="Showroom Escocar Autos" id="heroShowroomImg">
+    <img src="/static/img/hero_showroom.webp" alt="Showroom Escocar Autos" id="heroShowroomImg" width="1376" height="768" fetchpriority="high" decoding="async">
   </div>
   <div class="hero-overlay"></div>
 
   <div class="hero-container">
     <div class="hero-content">
       <h1 class="hero-title">
-        La Experiencia de Manejar <span class="text-gold">Lo Extraordinario</span>
+        Escocar Autos: Manejar <span class="text-gold">Lo Extraordinario</span>
       </h1>
       <p class="hero-subtitle">
-        Selección exclusiva de vehículos seleccionados, motos y deportivos con peritaje certificado, entrega inmediata y documentación al día.
+        Concesionaria multimarca en <strong>Belén de Escobar</strong> para toda Zona Norte (<strong>Pilar, Loma Verde, Ingeniero Maschwitz y Garín</strong>). Selección exclusiva de autos usados seleccionados, camionetas, motos y náutica con créditos prendarios, financiación, permutas y consignación.
       </p>
 
       <div class="hero-cta-group">
@@ -106,7 +106,7 @@
     <article class="car-card" id="carCard{{.ID}}">
       <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-car-name="{{.Make}} {{.Model}} ({{.Year}})" data-current-index="0">
         <a href="/auto/{{.ID}}" class="card-carousel-link" data-track="car_view" data-car-id="{{.ID}}">
-          <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" loading="lazy">
+          <img src="{{.PrimaryThumb}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" width="640" height="480" loading="lazy" decoding="async">
         </a>
         <button type="button" class="card-carousel-expand" title="Ver fotos en pantalla completa" aria-label="Ampliar galería">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
@@ -198,53 +198,66 @@
 <!-- Trust & Value Proposition -->
 <section class="section" id="nosotros" style="background: rgba(18, 23, 33, 0.4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
   <div class="section-header">
-    <span class="section-tag">Por Qué Elegirnos</span>
-    <h2 class="section-title">El Estándar <span class="text-gold">Escocar</span></h2>
+    <span class="section-tag">Por Qué Elegir Escocar Autos</span>
+    <h2 class="section-title">El Estándar <span class="text-gold">Escocar</span> en Zona Norte</h2>
     <p class="section-desc">
-      Comprar o vender un vehículo debe ser una experiencia transparente, segura y placentera.
+      En <strong>Escocar Autos</strong> transformamos la compra, venta, permuta y consignación de tu vehículo en Belén de Escobar, Pilar, Loma Verde, Maschwitz y Garín en una operación segura, ágil y transparente.
     </p>
   </div>
 
   <div class="trust-grid">
     <div class="trust-card">
       <div class="trust-icon">📋</div>
-      <h3 class="trust-title">Documentación al Día</h3>
-      <p>Todas nuestras unidades cuentan con peritaje legal exhaustivo, documentación al día y listas para transferir de inmediato.</p>
+      <h3 class="trust-title">Documentación & Gestoría</h3>
+      <p>Todas nuestras unidades cuentan con verificación policial, informe de dominio, libre de deudas y gestoría propia listas para transferencia inmediata.</p>
     </div>
 
     <div class="trust-card">
       <div class="trust-icon">🔍</div>
       <h3 class="trust-title">Peritaje 150 Puntos</h3>
-      <p>Inspección técnica exhaustiva de chasis, electrónica, tren delantero, frenos y verificación de historial legal.</p>
+      <p>Inspección técnica exhaustiva de chasis, electrónica, motorización, tren delantero, frenos y kilometraje real comprobado en cada auto y camioneta.</p>
     </div>
 
     <div class="trust-card">
       <div class="trust-icon">💳</div>
-      <h3 class="trust-title">Financiación a Medida</h3>
-      <p>Créditos prendarios con entrega inmediata y planes en cuotas fijas en pesos o dólares adaptados a tu flujo de ingresos.</p>
+      <h3 class="trust-title">Créditos & Financiación</h3>
+      <p>Créditos prendarios bancarios con mínimos requisitos (solo con DNI), entrega inmediata y planes de financiación en cuotas fijas en pesos o UVA.</p>
     </div>
 
     <div class="trust-card">
       <div class="trust-icon">🔄</div>
-      <h3 class="trust-title">Tomamos Tu Usado</h3>
-      <p>Cotizamos tu vehículo actual al mejor valor de plaza para que lo entregues como parte de pago sin complicaciones.</p>
+      <h3 class="trust-title">Permutas Llave por Llave</h3>
+      <p>Tomamos tu auto, camioneta o moto usada en parte de pago al mejor valor de plaza. Venís con tu usado y te vas manejando tu nueva unidad.</p>
+    </div>
+
+    <div class="trust-card">
+      <div class="trust-icon">🤝</div>
+      <h3 class="trust-title">Consignaciones & Concesiones</h3>
+      <p>¿Querés vender tu auto al mejor precio y sin riesgos? Recibimos tu unidad en consignación en nuestro showroom de Escobar y gestionamos toda la venta.</p>
     </div>
   </div>
 </section>
 
-<!-- Valuation CTA Banner -->
+<!-- Valuation, Trade-In & Consignment CTA Banner -->
 <section class="section" id="servicios">
   <div style="background: linear-gradient(135deg, rgba(23, 33, 51, 0.9), rgba(15, 20, 29, 0.95)); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 3.5rem 2.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;">
-    <div style="max-width: 620px;">
-      <span class="text-gold" style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tasación Inmediata</span>
-      <h2 style="margin: 0.5rem 0 1rem 0; font-size: 2.2rem;">¿Querés cambiar tu auto hoy mismo?</h2>
+    <div style="max-width: 650px;">
+      <span class="text-gold" style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Permutas, Consignaciones y Tasación Inmediata</span>
+      <h2 style="margin: 0.5rem 0 1rem 0; font-size: 2.2rem;">¿Querés permutar o dejar tu auto en consignación?</h2>
       <p style="font-size: 1.05rem; line-height: 1.6;">
-        Traé tu vehículo a nuestro showroom o envianos los datos por WhatsApp. Te realizamos una oferta en el acto para renovar tu unidad.
+        Acercate a nuestro showroom de <strong>Escocar Autos en Belén de Escobar</strong> (a minutos de Pilar, Loma Verde, Maschwitz y Garín) o escribinos por WhatsApp. Tasamos tu usado en el acto para permuta o concesión de venta con seguridad total.
       </p>
     </div>
-    <div>
-      <a href="#" class="btn btn-primary" data-open-modal="lead" data-car-name="Tasación de Usado" id="btnOpenTasacionModal">
-        Cotizar Mi Vehículo Ahora
+    <div style="display: flex; flex-wrap: wrap; gap: 0.85rem;">
+      <a href="#" class="btn btn-primary" data-open-modal="lead" data-car-name="Tasación / Permuta / Consignación" id="btnOpenTasacionModal">
+        Cotizar Permuta o Consignación
+      </a>
+      <a href="https://wa.me/{{if .WhatsApp}}{{.WhatsApp}}{{else}}5491100000000{{end}}?text=Hola%20Escocar%20Autos,%20quiero%20consultar%20por%20permuta,%20financiaci%C3%B3n%20o%20consignaci%C3%B3n%20de%20mi%20veh%C3%ADculo" 
+         target="_blank" 
+         class="btn btn-whatsapp" 
+         data-track="whatsapp" 
+         data-car-name="Consulta Permuta / Consignación">
+        💬 Hablar con un Asesor
       </a>
     </div>
   </div>
@@ -256,7 +269,7 @@
     <span class="section-tag">Visitanos en Nuestro Showroom</span>
     <h2 class="section-title">Dónde <span class="text-gold">Estamos</span></h2>
     <p class="section-desc">
-      Vení a conocer nuestras unidades en persona, realizar peritajes presenciales o coordinar la entrega de tu próximo auto.
+      Vení a conocer las unidades de <strong>Escocar Autos</strong> en persona, realizar peritajes presenciales, simular tu crédito prendario o coordinar la entrega de tu próximo vehículo.
     </p>
   </div>
 
@@ -291,9 +304,9 @@
       <div class="location-item">
         <div class="location-icon">🚗</div>
         <div>
-          <div class="location-item-label">Acceso & Estacionamiento</div>
+          <div class="location-item-label">Acceso Rápido desde toda Zona Norte</div>
           <div class="location-item-val" style="color: var(--text-muted); font-size: 0.9rem;">
-            A pocas cuadras del centro comercial de Belén de Escobar, con acceso rápido y directo desde Panamericana (Ramal Campana / Escobar). Disponemos de estacionamiento para clientes.
+            A pocas cuadras del centro de Belén de Escobar, con acceso directo desde Panamericana (Ramal Escobar / Campana y conexión rápida con Ramal Pilar). A minutos de <strong>Loma Verde, Ingeniero Maschwitz, Garín, Pilar, Matheu, Los Cardales y Campana</strong>. Estacionamiento exclusivo para clientes.
           </div>
         </div>
       </div>
@@ -321,7 +334,7 @@
     <!-- Map Column -->
     <div class="location-map-wrapper">
       <iframe 
-        title="Ubicación Escocar - Dr. Travi 970, Belén de Escobar"
+        title="Ubicación Escocar Autos - Dr. Travi 970, Belén de Escobar"
         src="https://maps.google.com/maps?q=Dr.+Travi+970,+B1625DXD+Bel%C3%A9n+de+Escobar,+Provincia+de+Buenos+Aires&t=&z=16&ie=UTF8&iwloc=&output=embed" 
         width="100%" 
         height="100%" 
@@ -330,6 +343,66 @@
         loading="lazy" 
         referrerpolicy="no-referrer-when-downgrade">
       </iframe>
+    </div>
+  </div>
+</section>
+
+<!-- Preguntas Frecuentes (FAQ) & Cobertura Regional Zona Norte (SEO Semántico y Entidad de Marca) -->
+<section class="section" id="cobertura-seo" style="padding-top: 1rem;">
+  <div class="seo-authority-box">
+    <div class="section-header" style="margin-bottom: 2.25rem;">
+      <span class="section-tag">Concesionaria Multimarca en Zona Norte</span>
+      <h2 class="section-title">Preguntas Frecuentes sobre <span class="text-gold">Escocar Autos</span></h2>
+      <p class="section-desc">
+        Conocé cómo trabajamos en nuestra agencia de <strong>Belén de Escobar</strong> para clientes de <strong>Pilar, Loma Verde, Ingeniero Maschwitz, Garín</strong> y todo el corredor norte.
+      </p>
+    </div>
+
+    <div class="faq-accordion-grid">
+      <details class="faq-item" open>
+        <summary class="faq-question">¿Dónde queda la agencia Escocar Autos y qué zonas de Zona Norte atienden?</summary>
+        <div class="faq-answer">
+          El showroom central de <strong>Escocar Autos</strong> (Agencia Escocar) está ubicado en <strong>Dr. Travi 970, Belén de Escobar</strong>, Provincia de Buenos Aires. Por nuestra ubicación estratégica sobre el corredor Panamericana, recibimos diariamente operaciones de compra, venta, permuta y consignación de clientes de <strong>Belén de Escobar, Pilar, Loma Verde, Ingeniero Maschwitz, Garín, Matheu, Maquinista Savio, Los Cardales, Campana, Zárate, Nordelta, Benavídez, Del Viso y Tortuguitas</strong>.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">¿Cómo funcionan los créditos prendarios y la financiación de autos usados?</summary>
+        <div class="faq-answer">
+          En <strong>Escocar Autos</strong> contamos con líneas de <strong>créditos prendarios bancarios y financiación propia</strong> con aprobación en el día y mínimos requisitos (solo con DNI). Podés financiar un porcentaje de tu próximo auto o camioneta en <strong>cuotas fijas en pesos o créditos UVA</strong>, combinando efectivo, transferencia o la entrega de tu vehículo usado como anticipo.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">¿Aceptan permutas y toman autos o camionetas en parte de pago?</summary>
+        <div class="faq-answer">
+          Sí, realizamos <strong>permutas llave por llave</strong>. Tomamos tu auto usado, SUV, pickup 4x4 o moto en parte de pago al mejor valor de mercado. Realizamos el peritaje en el acto en nuestro salón de Belén de Escobar para que entregues tu unidad actual y te lleves tu nuevo vehículo transferido y asegurado.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">¿Qué es el servicio de consignación y concesiones de vehículos en Escocar Autos?</summary>
+        <div class="faq-answer">
+          Si querés vender tu auto de forma segura sin recibir extraños en tu domicilio, nuestro servicio de <strong>consignación automotor (concesiones de venta)</strong> se ocupa de todo: estética vehicular, fotografía profesional en nuestro showroom, publicación destacada, atención de interesados, oferta de financiación y permuta para facilitar el cierre, y gestoría integral hasta que cobrás el valor acordado.
+        </div>
+      </details>
+    </div>
+
+    <div class="seo-zones-bar">
+      <div class="seo-zones-title">📍 Localidades y Búsquedas Frecuentes en Zona Norte:</div>
+      <div class="seo-zones-pills">
+        <a href="/catalogo" class="seo-zone-pill">Autos Usados en Belén de Escobar</a>
+        <a href="/catalogo" class="seo-zone-pill">Concesionaria en Pilar</a>
+        <a href="/catalogo" class="seo-zone-pill">Venta de Autos Loma Verde</a>
+        <a href="/catalogo" class="seo-zone-pill">Agencia de Autos Ingeniero Maschwitz</a>
+        <a href="/catalogo" class="seo-zone-pill">Autos Seleccionados Garín</a>
+        <a href="/catalogo?body_type=Pickup" class="seo-zone-pill">Camionetas y Pickups 4x4 Escobar y Pilar</a>
+        <a href="/catalogo?body_type=SUV" class="seo-zone-pill">SUVs Usadas Zona Norte</a>
+        <a href="/#servicios" class="seo-zone-pill">Créditos Prendarios y Financiación</a>
+        <a href="/#servicios" class="seo-zone-pill">Permutas Llave por Llave</a>
+        <a href="/#servicios" class="seo-zone-pill">Consignación de Vehículos Matheu y Cardales</a>
+        <a href="/catalogo?body_type=Náutica" class="seo-zone-pill">Lanchas y Motos de Agua Escobar</a>
+      </div>
     </div>
   </div>
 </section>

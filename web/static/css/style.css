@@ -16,7 +16,7 @@
 
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-dim: #94a3b8;
 
   /* Escocar Racing Red & Charcoal Palette */
   --accent-red: #ff0000;
@@ -290,15 +290,15 @@ a {
 }
 
 .btn-whatsapp {
-  background: #25d366;
+  background: #12803c;
   color: #ffffff;
-  box-shadow: 0 8px 20px -3px rgba(37, 211, 102, 0.35);
+  box-shadow: 0 8px 20px -3px rgba(18, 128, 60, 0.35);
 }
 
 .btn-whatsapp:hover {
-  background: #20ba59;
+  background: #0f6b32;
   transform: translateY(-2px);
-  box-shadow: 0 12px 25px -3px rgba(37, 211, 102, 0.5);
+  box-shadow: 0 12px 25px -3px rgba(18, 128, 60, 0.5);
 }
 
 .btn-sm {
@@ -712,6 +712,12 @@ a {
   border: 1px solid rgba(100, 116, 139, 0.4);
 }
 
+.badge-tag.badge-borrador {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
 
 .car-body {
   padding: 1.5rem;
@@ -848,9 +854,13 @@ a {
 
 .detail-container {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: 3rem;
   align-items: flex-start;
+}
+
+.detail-container > * {
+  min-width: 0;
 }
 
 .gallery-main {
@@ -1005,6 +1015,26 @@ a {
   gap: 0.75rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
+  max-width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.gallery-thumbs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.gallery-thumbs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gallery-thumbs::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+}
+
+.gallery-thumbs::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
 }
 
 .thumb-item {
@@ -1339,7 +1369,7 @@ body.modal-open {
     min-height: 360px;
   }
   .detail-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .footer-container {
     grid-template-columns: 1fr 1fr;
@@ -2116,8 +2146,7 @@ body.lightbox-open {
   visibility: hidden;
   transform: translateY(24px) scale(0.97);
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.4s;
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
@@ -2208,5 +2237,127 @@ body.lightbox-open {
     max-width: none;
   }
 }
+
+/* ==========================================================================
+   SEO AUTHORITY, FAQ ACCORDION & ZONA NORTE COVERAGE PILLS
+   ========================================================================== */
+
+.seo-authority-box {
+  background: rgba(15, 19, 28, 0.65);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 3rem 2.5rem;
+  backdrop-filter: blur(16px);
+}
+
+.faq-accordion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 2.25rem;
+}
+
+.faq-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.35rem;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.faq-item[open] {
+  border-color: rgba(255, 0, 0, 0.35);
+  background: rgba(22, 26, 36, 0.92);
+}
+
+.faq-question {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: #ffffff;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question::after {
+  content: '+';
+  color: var(--accent-gold);
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.faq-item[open] .faq-question::after {
+  content: '−';
+}
+
+.faq-answer {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #cbd5e1;
+}
+
+.seo-zones-bar {
+  background: rgba(10, 13, 18, 0.55);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.35rem 1.5rem;
+}
+
+.seo-zones-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.9rem;
+}
+
+.seo-zones-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.seo-zone-pill {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.seo-zone-pill:hover {
+  color: #ffffff;
+  border-color: var(--accent-gold);
+  background: rgba(255, 0, 0, 0.14);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .seo-authority-box {
+    padding: 2rem 1.25rem;
+  }
+  .faq-accordion-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 

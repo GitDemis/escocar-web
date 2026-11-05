@@ -25,8 +25,10 @@ FROM docker.io/library/alpine:3.20
 
 WORKDIR /app
 
-# Install security updates and timezone data
-RUN apk add --no-cache ca-certificates tzdata
+# Install security updates, timezone data, and image processing tools (WebP, JPEG XL, EXIF stripping)
+RUN apk add --no-cache ca-certificates tzdata \
+    imagemagick imagemagick-jpeg imagemagick-webp imagemagick-jxl imagemagick-heic \
+    libwebp-tools libjxl-tools
 ENV TZ=America/Argentina/Buenos_Aires
 
 # Create application directories

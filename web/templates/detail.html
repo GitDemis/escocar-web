@@ -1,6 +1,6 @@
 {{define "content"}}
 
-{{if and (eq .SelectedCar.Status "archivado") (not .IsAdmin)}}
+{{if and (or (eq .SelectedCar.Status "archivado") (eq .SelectedCar.Status "borrador")) (not .IsAdmin)}}
 <!-- UNAVAILABLE PUBLICATION VIEW (FOR PUBLIC VISITORS) -->
 <div class="section" style="padding-top: 3.5rem; padding-bottom: 5rem;">
   <div style="max-width: 860px; margin: 0 auto; text-align: center; padding: 0 1rem;">
@@ -49,7 +49,7 @@
         <article class="car-card">
           <div class="car-thumb">
             <a href="/auto/{{.ID}}" data-track="car_view" data-car-id="{{.ID}}">
-              <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}}">
+              <img src="{{.PrimaryThumb}}" alt="{{.Make}} {{.Model}}" width="640" height="480" loading="lazy" decoding="async">
             </a>
             {{if eq .Status "reservado"}}
               <span class="car-badge-pill car-badge-reserved">Reservado</span>
@@ -87,6 +87,27 @@
 {{else}}
 
 <div class="section car-detail-page" style="padding-top: 2.5rem;" data-current-car-id="{{.SelectedCar.ID}}">
+
+  {{if and (eq .SelectedCar.Status "borrador") .IsAdmin}}
+  <!-- Admin-Only Notice Banner for Draft Publication -->
+  <div style="background: rgba(59, 130, 246, 0.12); border: 2px dashed rgba(59, 130, 246, 0.5); border-radius: var(--radius-md); padding: 1.25rem 1.75rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span style="font-size: 1.8rem;">📝</span>
+      <div>
+        <div style="font-weight: 700; color: #60a5fa; font-size: 1.05rem;">Publicación en Modo Borrador (Vista Exclusiva de Administrador)</div>
+        <p style="margin: 0.2rem 0 0 0; font-size: 0.88rem; color: #f8fafc;">
+          Esta unidad <strong>no está publicada en la web</strong>. Ningún cliente puede verla en el catálogo ni en el inicio. Podés revisar las fotos, datos y cómo se ve antes de publicarla.
+        </p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-primary btn-sm" onclick="publishDraftCar({{.SelectedCar.ID}})" style="padding: 0.5rem 1rem;">
+        🚀 Publicar Ahora
+      </button>
+      <a href="/admin" class="btn btn-secondary btn-sm" style="padding: 0.5rem 1rem;">Volver al Panel</a>
+    </div>
+  </div>
+  {{end}}
 
   {{if and (eq .SelectedCar.Status "archivado") .IsAdmin}}
   <!-- Admin-Only Notice Banner for Archived Publication -->
@@ -157,6 +178,10 @@
           {{end}}
         </div>
         {{end}}
+
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle); font-size: 0.9rem; color: var(--text-muted); line-height: 1.65;">
+          <strong style="color: #f1f5f9;">📍 Disponible en Escocar Autos (Dr. Travi 970, Belén de Escobar):</strong> Unidad seleccionada con peritaje de 150 puntos y documentación al día lista para transferir. Aceptamos <strong>permutas</strong> (tomamos tu auto, camioneta o moto en parte de pago), ofrecemos <strong>créditos prendarios y financiación en cuotas</strong>, y atendemos consultas de <strong>Escobar, Pilar, Loma Verde, Ingeniero Maschwitz, Garín</strong> y toda Zona Norte.
+        </div>
       </div>
     </div>
 

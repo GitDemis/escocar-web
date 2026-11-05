@@ -9,8 +9,6 @@ type Config struct {
 	Port               string
 	DatabaseURL        string
 	UploadDir          string
-	AdminUser          string
-	AdminPass          string
 	BaseURL            string
 	AdminDomain        string
 	GoogleClientID     string
@@ -25,8 +23,6 @@ func Load() *Config {
 	port := getEnv("PORT", "8080")
 	dbURL := getEnv("DATABASE_URL", "postgres://escocar:escocar_password@localhost:5432/escocardb?sslmode=disable")
 	uploadDir := getEnv("UPLOAD_DIR", "./uploads")
-	adminUser := getEnv("ADMIN_USER", "admin")
-	adminPass := getEnv("ADMIN_PASS", "escocar2026")
 	baseURL := getEnv("BASE_URL", "https://escocarautos.com.ar")
 	adminDomain := getEnv("ADMIN_DOMAIN", "personalized.escocarautos.com.ar")
 	googleClientID := getEnv("GOOGLE_CLIENT_ID", "")
@@ -48,8 +44,6 @@ func Load() *Config {
 		Port:               port,
 		DatabaseURL:        dbURL,
 		UploadDir:          uploadDir,
-		AdminUser:          adminUser,
-		AdminPass:          adminPass,
 		BaseURL:            baseURL,
 		AdminDomain:        adminDomain,
 		GoogleClientID:     googleClientID,

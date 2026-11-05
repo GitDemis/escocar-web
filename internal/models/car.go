@@ -64,6 +64,14 @@ func (c *Car) PrimaryImage() string {
 	return "/static/img/hero_showroom.jpg"
 }
 
+func (c *Car) PrimaryThumb() string {
+	img := c.PrimaryImage()
+	if len(img) > 9 && img[:9] == "/uploads/" {
+		return img + "?thumb=1"
+	}
+	return img
+}
+
 func (c *Car) FeaturesJSON() string {
 	bytes, _ := json.Marshal(c.Features)
 	return string(bytes)

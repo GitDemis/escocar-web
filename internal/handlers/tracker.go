@@ -3,6 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
 
 	"escocar-web/internal/database"
 	"escocar-web/internal/middleware"
@@ -17,6 +20,14 @@ func NewTrackerHandler(db *database.DB) *TrackerHandler {
 	return &TrackerHandler{db: db}
 }
 
+func truncateString(s string, maxLen int) string {
+	s = strings.TrimSpace(s)
+	if len(s) > maxLen {
+		return s[:maxLen]
+	}
+	return s
+}
+
 type EventRequest struct {
 	CarID     *int   `json:"car_id"`
 	EventType string `json:"event_type"` // e.g. "whatsapp_click", "finance_calculate", "call_click"
@@ -24,6 +35,8 @@ type EventRequest struct {
 }
 
 func (h *TrackerHandler) RecordEvent(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10) // 64 KB max payload
+
 	var req EventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Payload inválido", http.StatusBadRequest)
@@ -43,21 +56,21 @@ func (h *TrackerHandler) RecordEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if visitorID == "" {
-		http.Error(w, "Visitor ID ausente", http.StatusBadRequest)
+	if visitorID == "" || uuid.Validate(visitorID) != nil {
+		http.Error(w, "Visitor ID ausente o inválido", http.StatusBadRequest)
 		return
 	}
 
 	event := &models.TrafficEvent{
 		VisitorID: visitorID,
-		SessionID: sessionID,
+		SessionID: truncateString(sessionID, 64),
 		CarID:     req.CarID,
-		EventType: req.EventType,
-		EventData: req.EventData,
+		EventType: truncateString(req.EventType, 64),
+		EventData: truncateString(req.EventData, 2048),
 	}
 
 	if err := h.db.RecordEvent(event); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error al registrar evento", http.StatusInternalServerError)
 		return
 	}
 
@@ -74,11 +87,18 @@ type LeadRequest struct {
 }
 
 func (h *TrackerHandler) RecordLead(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10) // 64 KB max payload
+
 	var req LeadRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Payload inválido", http.StatusBadRequest)
 		return
 	}
+
+	req.Name = truncateString(req.Name, 120)
+	req.Phone = truncateString(req.Phone, 50)
+	req.Email = truncateString(req.Email, 160)
+	req.Message = truncateString(req.Message, 2000)
 
 	if req.Name == "" || req.Phone == "" {
 		http.Error(w, "Nombre y teléfono son obligatorios", http.StatusBadRequest)
@@ -90,6 +110,9 @@ func (h *TrackerHandler) RecordLead(w http.ResponseWriter, r *http.Request) {
 		visitorID = vCtx.VisitorID
 	} else if cookie, err := r.Cookie(middleware.CookieVisitorID); err == nil {
 		visitorID = cookie.Value
+	}
+	if uuid.Validate(visitorID) != nil {
+		visitorID = ""
 	}
 
 	lead := &models.Lead{
@@ -103,7 +126,7 @@ func (h *TrackerHandler) RecordLead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.RecordLead(lead); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error al guardar consulta", http.StatusInternalServerError)
 		return
 	}
 

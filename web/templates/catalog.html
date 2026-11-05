@@ -4,9 +4,9 @@
   <!-- Catalog Header -->
   <div style="margin-bottom: 2.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem;">
     <div>
-      <span class="section-tag">Inventario en Stock</span>
-      <h1 style="font-size: 2.5rem; margin-top: 0.3rem;">Catálogo de <span class="text-gold">Vehículos</span></h1>
-      <p style="margin-top: 0.5rem;">Explorá nuestras unidades seleccionadas con peritaje integral, documentación al día y financiación a medida.</p>
+      <span class="section-tag">Inventario en Stock · Escocar Autos</span>
+      <h1 style="font-size: 2.5rem; margin-top: 0.3rem;">Catálogo de <span class="text-gold">{{if .SelectedBodyType}}{{.SelectedBodyType}}{{else}}Vehículos{{end}}</span></h1>
+      <p style="margin-top: 0.5rem;">Unidades seleccionadas en <strong>Belén de Escobar</strong> (para clientes de <strong>Pilar, Loma Verde, Maschwitz y Garín</strong>) con peritaje integral, créditos prendarios, financiación, permutas y consignación.</p>
     </div>
     <div style="color: var(--text-muted); font-size: 0.95rem;">
       Mostrando <strong style="color: #ffffff;">{{len .Cars}}</strong> vehículos disponibles
@@ -18,7 +18,7 @@
     <form action="/catalogo" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto; gap: 1rem; align-items: flex-end;">
       <div class="form-group">
         <label class="form-label" for="filterQuery">Buscar</label>
-        <input type="text" name="q" id="filterQuery" class="form-input" placeholder="Ej: BMW, Audi..." value="">
+        <input type="text" name="q" id="filterQuery" class="form-input" placeholder="Ej: BMW, Amarok, Hilux..." value="{{.SearchQuery}}">
       </div>
 
       <div class="form-group">
@@ -35,14 +35,14 @@
         <label class="form-label" for="filterBody">Carrocería</label>
         <select name="body_type" id="filterBody" class="form-select">
           <option value="">Todas</option>
-          <option value="SUV">SUV</option>
-          <option value="Sedán">Sedán</option>
-          <option value="Coupé">Coupé</option>
-          <option value="Pickup">Pickup</option>
-          <option value="Hatchback">Hatchback</option>
-          <option value="Moto">Moto</option>
-          <option value="Utilitario">Utilitario</option>
-          <option value="Náutica">Náutica</option>
+          <option value="SUV" {{if eq .SelectedBodyType "SUV"}}selected{{end}}>SUV</option>
+          <option value="Sedán" {{if eq .SelectedBodyType "Sedán"}}selected{{end}}>Sedán</option>
+          <option value="Coupé" {{if eq .SelectedBodyType "Coupé"}}selected{{end}}>Coupé</option>
+          <option value="Pickup" {{if eq .SelectedBodyType "Pickup"}}selected{{end}}>Pickup</option>
+          <option value="Hatchback" {{if eq .SelectedBodyType "Hatchback"}}selected{{end}}>Hatchback</option>
+          <option value="Moto" {{if eq .SelectedBodyType "Moto"}}selected{{end}}>Moto</option>
+          <option value="Utilitario" {{if eq .SelectedBodyType "Utilitario"}}selected{{end}}>Utilitario</option>
+          <option value="Náutica" {{if eq .SelectedBodyType "Náutica"}}selected{{end}}>Náutica</option>
         </select>
       </div>
 
@@ -50,11 +50,11 @@
         <label class="form-label" for="filterFuel">Combustible</label>
         <select name="fuel_type" id="filterFuel" class="form-select">
           <option value="">Todos</option>
-          <option value="Nafta">Nafta</option>
-          <option value="Nafta/GNC">Nafta/GNC</option>
-          <option value="Diésel">Diésel</option>
-          <option value="Híbrido">Híbrido</option>
-          <option value="Eléctrico">Eléctrico</option>
+          <option value="Nafta" {{if eq .SelectedFuelType "Nafta"}}selected{{end}}>Nafta</option>
+          <option value="Nafta/GNC" {{if eq .SelectedFuelType "Nafta/GNC"}}selected{{end}}>Nafta/GNC</option>
+          <option value="Diésel" {{if eq .SelectedFuelType "Diésel"}}selected{{end}}>Diésel</option>
+          <option value="Híbrido" {{if eq .SelectedFuelType "Híbrido"}}selected{{end}}>Híbrido</option>
+          <option value="Eléctrico" {{if eq .SelectedFuelType "Eléctrico"}}selected{{end}}>Eléctrico</option>
         </select>
       </div>
 
@@ -62,10 +62,10 @@
         <label class="form-label" for="filterSort">Ordenar Por</label>
         <select name="sort_by" id="filterSort" class="form-select">
           <option value="">Relevancia / Destacados</option>
-          <option value="price_asc">Menor Precio</option>
-          <option value="price_desc">Mayor Precio</option>
-          <option value="year_desc">Más Nuevos</option>
-          <option value="mileage_asc">Menor Kilometraje</option>
+          <option value="price_asc" {{if eq .SelectedSortBy "price_asc"}}selected{{end}}>Menor Precio</option>
+          <option value="price_desc" {{if eq .SelectedSortBy "price_desc"}}selected{{end}}>Mayor Precio</option>
+          <option value="year_desc" {{if eq .SelectedSortBy "year_desc"}}selected{{end}}>Más Nuevos</option>
+          <option value="mileage_asc" {{if eq .SelectedSortBy "mileage_asc"}}selected{{end}}>Menor Kilometraje</option>
         </select>
       </div>
 
@@ -86,7 +86,7 @@
     <article class="car-card" id="catalogCard{{.ID}}">
       <div class="car-thumb card-carousel" data-images='{{.ImagesJSON}}' data-car-name="{{.Make}} {{.Model}} ({{.Year}})" data-current-index="0">
         <a href="/auto/{{.ID}}" class="card-carousel-link" data-track="car_view" data-car-id="{{.ID}}">
-          <img src="{{.PrimaryImage}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" loading="lazy">
+          <img src="{{.PrimaryThumb}}" alt="{{.Make}} {{.Model}} {{.Year}}" class="card-carousel-img" width="640" height="480" loading="lazy" decoding="async">
         </a>
         <button type="button" class="card-carousel-expand" title="Ver fotos en pantalla completa" aria-label="Ampliar galería">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>

@@ -210,7 +210,9 @@ func isIgnoredPath(path string) bool {
 		}
 	}
 
-	if strings.Contains(lower, "setup") ||
+	if strings.HasPrefix(lower, "/.") ||
+		strings.Contains(lower, "/.git") ||
+		strings.Contains(lower, "setup") ||
 		strings.Contains(lower, "wp-") ||
 		strings.Contains(lower, "wordpress") ||
 		strings.Contains(lower, "cgi-bin") ||

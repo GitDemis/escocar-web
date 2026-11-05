@@ -545,7 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const imgEl = carousel.querySelector('.card-carousel-img');
     if (imgEl && images[newIndex]) {
       imgEl.style.opacity = '0.5';
-      imgEl.src = images[newIndex];
+      const rawUrl = images[newIndex];
+      imgEl.src = (rawUrl.startsWith('/uploads/') && !rawUrl.includes('?')) ? `${rawUrl}?thumb=1` : rawUrl;
       imgEl.onload = () => { imgEl.style.opacity = '1'; };
       setTimeout(() => { imgEl.style.opacity = '1'; }, 200);
     }
@@ -884,4 +885,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  // Quick Action for Admin Draft Preview: Publish directly from the page
+  window.publishDraftCar = async function(carId) {
+    if (!carId) return;
+    if (!confirm('¿Deseás publicar este vehículo ahora en el catálogo web?')) return;
+    try {
+      const res = await fetch(`/api/cars/${carId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'disponible' })
+      });
+      if (res.ok) {
+        alert('¡Vehículo publicado exitosamente en el catálogo!');
+        window.location.reload();
+      } else {
+        alert('Error al publicar: ' + (await res.text()));
+      }
+    } catch (err) {
+      alert('Error de conexión al publicar');
+    }
+  };
 });

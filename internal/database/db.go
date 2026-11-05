@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"escocar-web/internal/models"
 )
@@ -200,9 +203,10 @@ func (d *DB) CreateAdminSession(token, email, name, picture string, expiresAt ti
 
 func (d *DB) GetAdminSession(token string) (*models.AdminSession, error) {
 	query := `
-		SELECT id, token, email, name, picture, expires_at, created_at
-		FROM admin_sessions
+		UPDATE admin_sessions
+		SET expires_at = NOW() + INTERVAL '30 days'
 		WHERE token = $1 AND expires_at > NOW()
+		RETURNING id, token, email, name, picture, expires_at, created_at
 	`
 	var s models.AdminSession
 	err := d.QueryRow(query, token).Scan(
@@ -393,11 +397,14 @@ func (d *DB) GetCars(filter models.CarFilter) ([]models.Car, error) {
 	}
 
 	if filter.Status != "" {
+		if !filter.IncludeArchived && (filter.Status == "archivado" || filter.Status == "borrador") {
+			return []models.Car{}, nil
+		}
 		query += fmt.Sprintf(" AND status = $%d", idx)
 		args = append(args, filter.Status)
 		idx++
 	} else if !filter.IncludeArchived {
-		query += " AND status != 'archivado'"
+		query += " AND status NOT IN ('archivado', 'borrador')"
 	}
 
 	if filter.FeaturedOnly {
@@ -576,12 +583,12 @@ func (d *DB) PurgeCar(id int) error {
 	return nil
 }
 
-// GetAvailableMakes returns the distinct brands currently in (non-archived) stock.
+// GetAvailableMakes returns the distinct brands currently in (non-archived, non-draft) stock.
 func (d *DB) GetAvailableMakes() ([]string, error) {
 	rows, err := d.Query(`
 		SELECT MIN(TRIM(make)) AS make
 		FROM cars
-		WHERE status != 'archivado' AND TRIM(make) != ''
+		WHERE status NOT IN ('archivado', 'borrador') AND TRIM(make) != ''
 		GROUP BY LOWER(TRIM(make))
 		ORDER BY LOWER(MIN(TRIM(make)))
 	`)
@@ -667,12 +674,20 @@ func (d *DB) RecordEvent(e *models.TrafficEvent) error {
 }
 
 func (d *DB) RecordLead(l *models.Lead) error {
+	var visitorIDArg interface{}
+	if l.VisitorID != "" && uuid.Validate(l.VisitorID) == nil {
+		visitorIDArg = l.VisitorID
+	} else {
+		l.VisitorID = ""
+		visitorIDArg = nil
+	}
+
 	query := `
 		INSERT INTO leads (visitor_id, car_id, name, phone, email, message, status, notes, updated_at, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, 'nuevo', '', NOW(), NOW())
 		RETURNING id, created_at, updated_at
 	`
-	err := d.QueryRow(query, l.VisitorID, l.CarID, l.Name, l.Phone, l.Email, l.Message).Scan(&l.ID, &l.CreatedAt, &l.UpdatedAt)
+	err := d.QueryRow(query, visitorIDArg, l.CarID, l.Name, l.Phone, l.Email, l.Message).Scan(&l.ID, &l.CreatedAt, &l.UpdatedAt)
 	if err != nil {
 		return err
 	}
@@ -756,7 +771,7 @@ func (d *DB) GetLeadByID(id int) (*models.Lead, error) {
 		carRows, err := d.Query(`
 			SELECT DISTINCT c.make || ' ' || c.model || ' (' || c.year || ')'
 			FROM (
-				SELECT car_id FROM tracking_events WHERE visitor_id = $1 AND car_id IS NOT NULL
+				SELECT car_id FROM traffic_events WHERE visitor_id = $1 AND car_id IS NOT NULL
 				UNION
 				SELECT car_id FROM page_views WHERE visitor_id = $1 AND car_id IS NOT NULL
 			) v_cars
@@ -800,7 +815,7 @@ func (d *DB) DeleteLead(id int) error {
 }
 
 func (d *DB) GetLatestLeadByVisitorID(visitorID string) (*models.Lead, error) {
-	if visitorID == "" {
+	if visitorID == "" || uuid.Validate(visitorID) != nil {
 		return nil, sql.ErrNoRows
 	}
 	query := `
@@ -973,12 +988,47 @@ func (d *DB) SetWhatsAppNumber(number string) error {
 	return d.SetSetting("whatsapp_number", clean)
 }
 
+var gaMeasurementIDRegex = regexp.MustCompile(`^G-[A-Z0-9]{4,20}$`)
+
+func ValidateGoogleAnalyticsID(id string) (string, error) {
+	clean := strings.ToUpper(strings.TrimSpace(id))
+	if clean == "" {
+		return "", nil
+	}
+	if !gaMeasurementIDRegex.MatchString(clean) {
+		return "", fmt.Errorf("ID de Google Analytics inválido (debe tener formato G-XXXXXXXXXX)")
+	}
+	return clean, nil
+}
+
+func ValidateLookerStudioURL(urlStr string) (string, error) {
+	clean := strings.TrimSpace(urlStr)
+	if clean == "" {
+		return "", nil
+	}
+	if strings.ContainsAny(clean, " \t\r\n\"'<>\\") {
+		return "", fmt.Errorf("la URL contiene caracteres inválidos")
+	}
+	parsed, err := url.Parse(clean)
+	if err != nil || parsed.Scheme != "https" {
+		return "", fmt.Errorf("la URL de Looker Studio debe comenzar con https://")
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host != "lookerstudio.google.com" && host != "datastudio.google.com" {
+		return "", fmt.Errorf("la URL debe pertenecer a lookerstudio.google.com")
+	}
+	return clean, nil
+}
+
 func (d *DB) GetGoogleAnalyticsID() string {
 	return d.GetSetting("google_analytics_id", "")
 }
 
 func (d *DB) SetGoogleAnalyticsID(id string) error {
-	clean := strings.TrimSpace(id)
+	clean, err := ValidateGoogleAnalyticsID(id)
+	if err != nil {
+		return err
+	}
 	return d.SetSetting("google_analytics_id", clean)
 }
 
@@ -987,7 +1037,10 @@ func (d *DB) GetLookerStudioURL() string {
 }
 
 func (d *DB) SetLookerStudioURL(urlStr string) error {
-	clean := strings.TrimSpace(urlStr)
+	clean, err := ValidateLookerStudioURL(urlStr)
+	if err != nil {
+		return err
+	}
 	return d.SetSetting("looker_studio_url", clean)
 }
 

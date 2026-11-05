@@ -315,10 +315,11 @@
             <td>{{.FormattedMileage}}</td>
             <td>
               <select class="admin-status-select" data-car-id="{{.ID}}" data-status="{{.Status}}">
-                <option value="disponible" {{if eq .Status "disponible"}}selected{{end}}>Disponible</option>
-                <option value="reservado" {{if eq .Status "reservado"}}selected{{end}}>Reservado</option>
-                <option value="vendido" {{if eq .Status "vendido"}}selected{{end}}>Vendido</option>
-                <option value="archivado" {{if eq .Status "archivado"}}selected{{end}}>Archivado</option>
+                <option value="disponible" {{if eq .Status "disponible"}}selected{{end}}>🟢 Disponible</option>
+                <option value="borrador" {{if eq .Status "borrador"}}selected{{end}}>📝 Borrador (Oculto)</option>
+                <option value="reservado" {{if eq .Status "reservado"}}selected{{end}}>🟡 Reservado</option>
+                <option value="vendido" {{if eq .Status "vendido"}}selected{{end}}>🔴 Vendido</option>
+                <option value="archivado" {{if eq .Status "archivado"}}selected{{end}}>🗄️ Archivado</option>
               </select>
             </td>
             <td>
@@ -681,23 +682,24 @@
           <div class="image-preview-grid" id="addCarPreviewGrid"></div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;">
           <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
             <input type="checkbox" name="featured" id="carFeatured" value="true">
             <span style="font-weight: 600; font-size: 0.95rem;">Destacar en Portada</span>
           </label>
 
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label class="form-label" for="carStatus" style="margin: 0;">Estado:</label>
-            <select name="status" id="carStatus" class="form-select" style="width: auto; padding: 0.4rem 0.8rem;">
-              <option value="disponible">Disponible</option>
-              <option value="reservado">Reservado</option>
-              <option value="vendido">Vendido</option>
+            <label class="form-label" for="carStatus" style="margin: 0; font-weight: 600;">Estado de Publicación:</label>
+            <select name="status" id="carStatus" class="form-select" style="width: auto; padding: 0.45rem 0.85rem; font-weight: 600;">
+              <option value="disponible">🟢 Disponible (Publicar ahora en la web)</option>
+              <option value="borrador">📝 Borrador (Solo Administradores / No publicar)</option>
+              <option value="reservado">🟡 Reservado</option>
+              <option value="vendido">🔴 Vendido</option>
             </select>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem;" id="submitNewCarBtn">
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.05rem;" id="submitNewCarBtn">
           Guardar y Publicar en Catálogo
         </button>
       </form>
@@ -1322,10 +1324,11 @@
             <div class="form-group">
               <label class="form-label" for="editCarStatus">Estado *</label>
               <select name="status" id="editCarStatus" class="form-select" required>
-                <option value="disponible">Disponible</option>
-                <option value="reservado">Reservado</option>
-                <option value="vendido">Vendido</option>
-                <option value="archivado">Archivado</option>
+                <option value="disponible">🟢 Disponible (Publicado)</option>
+                <option value="borrador">📝 Borrador (Solo Administradores / Oculto)</option>
+                <option value="reservado">🟡 Reservado</option>
+                <option value="vendido">🔴 Vendido</option>
+                <option value="archivado">🗄️ Archivado</option>
               </select>
             </div>
             <div class="form-group">

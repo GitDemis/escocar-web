@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"crypto/subtle"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -33,20 +32,11 @@ func (h *PageHandler) getAdminSession(r *http.Request) *models.AdminSession {
 	if s, ok := r.Context().Value(AdminUserContextKey).(*models.AdminSession); ok && s != nil {
 		return s
 	}
-	// 2. Cookie
-	if cookie, err := r.Cookie(AdminSessionCookie); err == nil && cookie.Value != "" {
+	// 2. Cookie (Google OAuth session)
+	if cookie, err := r.Cookie(AdminSessionCookie); err == nil && cookie.Value != "" && h.db != nil {
 		session, err := h.db.GetAdminSession(cookie.Value)
 		if err == nil && session != nil {
 			return session
-		}
-	}
-	// 3. Fallback Basic Auth
-	user, pass, ok := r.BasicAuth()
-	if ok && subtle.ConstantTimeCompare([]byte(user), []byte(h.cfg.AdminUser)) == 1 &&
-		subtle.ConstantTimeCompare([]byte(pass), []byte(h.cfg.AdminPass)) == 1 {
-		return &models.AdminSession{
-			Email: h.cfg.AdminUser + "@escocar.local",
-			Name:  "Administrador",
 		}
 	}
 	return nil
@@ -62,6 +52,10 @@ func (h *PageHandler) getGoogleAnalyticsID() string {
 
 type PageData struct {
 	Title             string
+	MetaDescription   string
+	MetaKeywords      string
+	CanonicalPath     string
+	NoIndex           bool
 	Cars              []models.Car
 	FeaturedCars      []models.Car
 	SelectedCar       *models.Car
@@ -69,6 +63,10 @@ type PageData struct {
 	Config            *config.Config
 	Makes             []string
 	SelectedMake      string
+	SelectedBodyType  string
+	SelectedFuelType  string
+	SelectedSortBy    string
+	SearchQuery       string
 	BodyTypes         []string
 	Analytics         *models.AnalyticsSummary
 	Leads             []models.Lead
@@ -93,7 +91,9 @@ func (h *PageHandler) Home(w http.ResponseWriter, r *http.Request) {
 	makes, _ := h.db.GetAvailableMakes()
 
 	data := PageData{
-		Title:             "Escocar | Concesionaria Premium de Autos Seleccionados",
+		Title:             "Escocar Autos | Concesionaria de Autos Usados en Escobar, Pilar, Loma Verde, Maschwitz y Garín",
+		MetaDescription:   "Escocar Autos (Agencia Escocar en Dr. Travi 970, Belén de Escobar): Concesionaria multimarca líder en Zona Norte (Escobar, Pilar, Loma Verde, Ingeniero Maschwitz, Garín). Venta de autos usados seleccionados, camionetas, motos y náutica. Créditos prendarios, financiación, permutas y consignaciones.",
+		CanonicalPath:     "/",
 		FeaturedCars:      featured,
 		Cars:              allCars,
 		Makes:             makes,
@@ -115,17 +115,23 @@ func (h *PageHandler) Catalog(w http.ResponseWriter, r *http.Request) {
 	minPrice, _ := strconv.ParseFloat(q.Get("min_price"), 64)
 	maxPrice, _ := strconv.ParseFloat(q.Get("max_price"), 64)
 
+	makeFilter := strings.TrimSpace(q.Get("make"))
+	bodyType := strings.TrimSpace(q.Get("body_type"))
+	fuelType := strings.TrimSpace(q.Get("fuel_type"))
+	searchQuery := strings.TrimSpace(q.Get("q"))
+	sortBy := strings.TrimSpace(q.Get("sort_by"))
+
 	filter := models.CarFilter{
-		Query:        q.Get("q"),
-		Make:         q.Get("make"),
-		BodyType:     q.Get("body_type"),
-		FuelType:     q.Get("fuel_type"),
+		Query:        searchQuery,
+		Make:         makeFilter,
+		BodyType:     bodyType,
+		FuelType:     fuelType,
 		Transmission: q.Get("transmission"),
 		MinYear:      minYear,
 		MaxYear:      maxYear,
 		MinPrice:     minPrice,
 		MaxPrice:     maxPrice,
-		SortBy:       q.Get("sort_by"),
+		SortBy:       sortBy,
 	}
 
 	cars, err := h.db.GetCars(filter)
@@ -141,11 +147,33 @@ func (h *PageHandler) Catalog(w http.ResponseWriter, r *http.Request) {
 
 	makes, _ := h.db.GetAvailableMakes()
 
+	title := "Catálogo de Autos Usados, Camionetas, Permutas y Financiación en Escobar y Pilar | Escocar Autos"
+	metaDesc := "Explorá el inventario de Escocar Autos en Belén de Escobar (cerca de Pilar, Loma Verde, Maschwitz y Garín). Autos usados seleccionados, camionetas 4x4, SUVs, motos y náutica con créditos prendarios, permutas y consignación."
+	canonicalPath := "/catalogo"
+
+	if makeFilter != "" && bodyType != "" {
+		title = fmt.Sprintf("%s %s Usados en Escobar, Pilar y Zona Norte | Permuta y Financiación | Escocar Autos", makeFilter, bodyType)
+		metaDesc = fmt.Sprintf("Comprá tu %s (%s) en Escocar Autos, Belén de Escobar. Tomamos tu usado en permuta, créditos prendarios en cuotas y entrega inmediata para Pilar, Loma Verde, Maschwitz y Garín.", makeFilter, bodyType)
+	} else if makeFilter != "" {
+		title = fmt.Sprintf("Autos y Camionetas %s Usados en Escobar, Pilar y Zona Norte | Escocar Autos", makeFilter)
+		metaDesc = fmt.Sprintf("Venta de vehículos %s seleccionados en Escocar Autos (Belén de Escobar). Financiación prendaria, permutas llave por llave y consignación en Zona Norte (Pilar, Maschwitz, Loma Verde, Garín).", makeFilter)
+	} else if bodyType != "" {
+		title = fmt.Sprintf("Venta de %s en Escobar, Pilar, Maschwitz y Garín | Financiación y Permuta | Escocar Autos", bodyType)
+		metaDesc = fmt.Sprintf("Catálogo de %s seleccionados en Escocar Autos (Dr. Travi 970, Belén de Escobar). Créditos prendarios, permutas y consignaciones para clientes de Escobar, Pilar, Loma Verde, Maschwitz y Garín.", bodyType)
+		canonicalPath = "/catalogo?body_type=" + bodyType
+	}
+
 	data := PageData{
-		Title:             "Catálogo de Vehículos | Escocar",
+		Title:             title,
+		MetaDescription:   metaDesc,
+		CanonicalPath:     canonicalPath,
 		Cars:              cars,
 		Makes:             makes,
-		SelectedMake:      q.Get("make"),
+		SelectedMake:      makeFilter,
+		SelectedBodyType:  bodyType,
+		SelectedFuelType:  fuelType,
+		SelectedSortBy:    sortBy,
+		SearchQuery:       searchQuery,
 		VisitorInfo:       vCtx,
 		Config:            h.cfg,
 		SavedLead:         savedLead,
@@ -174,8 +202,8 @@ func (h *PageHandler) CarDetail(w http.ResponseWriter, r *http.Request) {
 	adminSession := h.getAdminSession(r)
 	isAdmin := adminSession != nil
 
-	// If publication is archived and user is NOT an admin, display the unavailable view
-	if car.Status == "archivado" && !isAdmin {
+	// If publication is archived or draft and user is NOT an admin, display the unavailable view
+	if (car.Status == "archivado" || car.Status == "borrador") && !isAdmin {
 		// Suggest other active vehicles so the user doesn't bounce
 		suggested, _ := h.db.GetCars(models.CarFilter{FeaturedOnly: true})
 		if len(suggested) == 0 {
@@ -184,6 +212,8 @@ func (h *PageHandler) CarDetail(w http.ResponseWriter, r *http.Request) {
 
 		data := PageData{
 			Title:             "Publicación no disponible | Escocar Autos",
+			CanonicalPath:     fmt.Sprintf("/auto/%d", car.ID),
+			NoIndex:           true,
 			SelectedCar:       car,
 			Cars:              suggested,
 			Config:            h.cfg,
@@ -197,7 +227,9 @@ func (h *PageHandler) CarDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = h.db.IncrementCarViews(id)
+	if car.Status != "borrador" {
+		_ = h.db.IncrementCarViews(id)
+	}
 
 	vCtx, _ := r.Context().Value(middleware.VisitorContextKey).(*middleware.VisitorContext)
 	var savedLead *models.Lead
@@ -205,17 +237,25 @@ func (h *PageHandler) CarDetail(w http.ResponseWriter, r *http.Request) {
 		savedLead, _ = h.db.GetLatestLeadByVisitorID(vCtx.VisitorID)
 	}
 
-	// Related cars (only active, excluding archived)
+	// Related cars (only active, excluding archived and drafts)
 	related, _ := h.db.GetCars(models.CarFilter{BodyType: car.BodyType})
 	var filteredRelated []models.Car
 	for _, rel := range related {
-		if rel.ID != car.ID && rel.Status != "archivado" {
+		if rel.ID != car.ID && rel.Status != "archivado" && rel.Status != "borrador" {
 			filteredRelated = append(filteredRelated, rel)
 		}
 	}
 
+	desc := fmt.Sprintf("%s %s (%d) con %s en venta en Escocar Autos, Belén de Escobar (cerca de Pilar, Loma Verde, Maschwitz y Garín). Créditos prendarios, financiación, permutas y consignación. %s", car.Make, car.Model, car.Year, car.FormattedMileage(), strings.TrimSpace(car.Description))
+	if len(desc) > 300 {
+		desc = desc[:297] + "..."
+	}
+
 	data := PageData{
-		Title:             car.Make + " " + car.Model + " " + strconv.Itoa(car.Year) + " | Escocar",
+		Title:             fmt.Sprintf("%s %s %d en Venta en Escobar y Zona Norte | Permuta y Financiación | Escocar Autos", car.Make, car.Model, car.Year),
+		MetaDescription:   desc,
+		CanonicalPath:     fmt.Sprintf("/auto/%d", car.ID),
+		NoIndex:           car.Status == "archivado" || car.Status == "borrador",
 		SelectedCar:       car,
 		Cars:              filteredRelated,
 		VisitorInfo:       vCtx,
@@ -240,6 +280,8 @@ func (h *PageHandler) Admin(w http.ResponseWriter, r *http.Request) {
 
 	data := PageData{
 		Title:             "Panel de Control | Escocar Autos",
+		CanonicalPath:     "/admin",
+		NoIndex:           true,
 		Cars:              cars,
 		FeaturedCars:      featured,
 		Analytics:         analytics,
@@ -375,9 +417,20 @@ func (h *PageHandler) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	sb.WriteString("    <priority>0.9</priority>\n")
 	sb.WriteString("  </url>\n")
 
+	// Category Landing Pages (Body Types)
+	categories := []string{"SUV", "Pickup", "Sedán", "Hatchback", "Coupé", "Moto", "Utilitario", "Náutica"}
+	for _, cat := range categories {
+		sb.WriteString("  <url>\n")
+		sb.WriteString("    <loc>https://escocarautos.com.ar/catalogo?body_type=" + cat + "</loc>\n")
+		sb.WriteString("    <lastmod>" + now + "</lastmod>\n")
+		sb.WriteString("    <changefreq>weekly</changefreq>\n")
+		sb.WriteString("    <priority>0.85</priority>\n")
+		sb.WriteString("  </url>\n")
+	}
+
 	// Vehicles
 	for _, car := range cars {
-		if car.Status == "archivado" {
+		if car.Status == "archivado" || car.Status == "borrador" {
 			continue
 		}
 		carLastMod := car.UpdatedAt.Format("2006-01-02")

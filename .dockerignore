@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+ssl/
+*.key
+*.crt
+uploads/
+escocar-server
+*.test
+*.out
+README.md
+scratch_logo.png

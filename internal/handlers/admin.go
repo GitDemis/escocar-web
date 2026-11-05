@@ -3,16 +3,17 @@ package handlers
 import (
 	"context"
 	"crypto/rand"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -44,11 +45,11 @@ func NewAdminHandler(db *database.DB, cfg *config.Config) *AdminHandler {
 	}
 }
 
-// AuthMiddleware verifies session cookie or basic auth fallback
+// AuthMiddleware verifies the Google OAuth session cookie.
 func (h *AdminHandler) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 1. Check Session Cookie from Google OAuth
-		if cookie, err := r.Cookie(AdminSessionCookie); err == nil && cookie.Value != "" {
+		if cookie, err := r.Cookie(AdminSessionCookie); err == nil && cookie.Value != "" && h.db != nil {
 			session, err := h.db.GetAdminSession(cookie.Value)
 			if err == nil && session != nil {
 				ctx := context.WithValue(r.Context(), AdminUserContextKey, session)
@@ -57,28 +58,14 @@ func (h *AdminHandler) AuthMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// 2. Fallback Basic Auth (for API / CLI or while setting up OAuth)
-		user, pass, ok := r.BasicAuth()
-		if ok && subtle.ConstantTimeCompare([]byte(user), []byte(h.cfg.AdminUser)) == 1 &&
-			subtle.ConstantTimeCompare([]byte(pass), []byte(h.cfg.AdminPass)) == 1 {
-			adminSession := &models.AdminSession{
-				Email: h.cfg.AdminUser + "@escocar.local",
-				Name:  "Administrador Local",
-			}
-			ctx := context.WithValue(r.Context(), AdminUserContextKey, adminSession)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		// 3. If HTML browser request, redirect to login page
+		// 2. If HTML browser request, redirect to Google login page
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
 
-		// Otherwise return 401 Unauthorized
-		w.Header().Set("WWW-Authenticate", `Basic realm="Escocar Admin"`)
-		http.Error(w, "Acceso no autorizado", http.StatusUnauthorized)
+		// Otherwise return 401 Unauthorized (without WWW-Authenticate: Basic so browsers never show a password popup)
+		http.Error(w, "Sesión expirada. Por favor iniciá sesión nuevamente con Google.", http.StatusUnauthorized)
 	})
 }
 
@@ -352,9 +339,15 @@ func (h *AdminHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce explicit email whitelist if ENFORCE_ADMIN_WHITELIST=true is set
+	if strings.EqualFold(os.Getenv("ENFORCE_ADMIN_WHITELIST"), "true") && !h.cfg.IsAuthorizedAdmin(googleUser.Email) {
+		h.renderUnauthorizedPage(w, googleUser.Email, googleUser.Name, googleUser.Picture)
+		return
+	}
+
 	// Create session (Authorized users are defined directly in the GCP OAuth client)
 	sessionToken := generateRandomString(32)
-	expiresAt := time.Now().Add(24 * 7 * time.Hour) // 7 days session
+	expiresAt := time.Now().Add(24 * 30 * time.Hour) // 30 days session
 
 	if err := h.db.CreateAdminSession(sessionToken, googleUser.Email, googleUser.Name, googleUser.Picture, expiresAt); err != nil {
 		fmt.Printf("Error creating admin session for %s: %v\n", googleUser.Email, err)
@@ -367,7 +360,7 @@ func (h *AdminHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionToken,
 		Path:     "/",
 		Expires:  expiresAt,
-		MaxAge:   int((24 * 7 * time.Hour).Seconds()),
+		MaxAge:   int((24 * 30 * time.Hour).Seconds()),
 		HttpOnly: true,
 		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
 		SameSite: http.SameSiteLaxMode,
@@ -561,30 +554,8 @@ func (h *AdminHandler) CreateCar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var images []string
-	files := r.MultipartForm.File["images"]
-	for _, fileHeader := range files {
-		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
-			continue
-		}
-
-		file, err := fileHeader.Open()
-		if err != nil {
-			continue
-		}
-		defer file.Close()
-
-		filename := fmt.Sprintf("car_%d_%s%s", time.Now().UnixNano(), sanitizeFilename(fileHeader.Filename), ext)
-		targetPath := filepath.Join(h.cfg.UploadDir, filename)
-
-		dst, err := os.Create(targetPath)
-		if err != nil {
-			continue
-		}
-		_, _ = io.Copy(dst, file)
-		dst.Close()
-
-		images = append(images, "/uploads/"+filename)
+	if r.MultipartForm != nil {
+		images = append(images, h.saveMultipartImages(r.MultipartForm)...)
 	}
 
 	if existingImgs := r.FormValue("existing_images"); existingImgs != "" {
@@ -624,6 +595,9 @@ func (h *AdminHandler) CreateCar(w http.ResponseWriter, r *http.Request) {
 	if car.Status == "" {
 		car.Status = "disponible"
 	}
+	if car.Status == "borrador" || car.Status == "archivado" {
+		car.Featured = false
+	}
 
 	if err := h.db.CreateCar(car); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -660,6 +634,9 @@ func (h *AdminHandler) UpdateCar(w http.ResponseWriter, r *http.Request) {
 					if err := h.db.UpdateCarStatus(id, req.Status); err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
+					}
+					if req.Status == "borrador" || req.Status == "archivado" {
+						_ = h.db.UpdateCarFeatured(id, false)
 					}
 					w.WriteHeader(http.StatusOK)
 					_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -762,30 +739,7 @@ func (h *AdminHandler) UpdateCar(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if r.MultipartForm != nil {
-			files := r.MultipartForm.File["images"]
-			for _, fileHeader := range files {
-				ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-				if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
-					continue
-				}
-				file, err := fileHeader.Open()
-				if err != nil {
-					continue
-				}
-				defer file.Close()
-
-				filename := fmt.Sprintf("car_%d_%s%s", time.Now().UnixNano(), sanitizeFilename(fileHeader.Filename), ext)
-				targetPath := filepath.Join(h.cfg.UploadDir, filename)
-
-				dst, err := os.Create(targetPath)
-				if err != nil {
-					continue
-				}
-				_, _ = io.Copy(dst, file)
-				dst.Close()
-
-				car.Images = append(car.Images, "/uploads/"+filename)
-			}
+			car.Images = append(car.Images, h.saveMultipartImages(r.MultipartForm)...)
 		}
 
 		if len(car.Images) == 0 {
@@ -799,6 +753,9 @@ func (h *AdminHandler) UpdateCar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	car.ID = id
+	if car.Status == "borrador" || car.Status == "archivado" {
+		car.Featured = false
+	}
 	if err := h.db.UpdateCar(car); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -855,10 +812,16 @@ func (h *AdminHandler) DeleteCar(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// Remove uploaded photos from disk (never touch bundled /static assets)
+		// Remove uploaded photos and their WebP/JXL/thumb variants from disk
 		for _, img := range car.Images {
 			if strings.HasPrefix(img, "/uploads/") {
-				_ = os.Remove(filepath.Join(h.cfg.UploadDir, filepath.Base(img)))
+				base := filepath.Base(img)
+				stem := strings.TrimSuffix(base, filepath.Ext(base))
+				_ = os.Remove(filepath.Join(h.cfg.UploadDir, base))
+				_ = os.Remove(filepath.Join(h.cfg.UploadDir, stem+".webp"))
+				_ = os.Remove(filepath.Join(h.cfg.UploadDir, stem+".jxl"))
+				_ = os.Remove(filepath.Join(h.cfg.UploadDir, stem+"_thumb.webp"))
+				_ = os.Remove(filepath.Join(h.cfg.UploadDir, stem+"_thumb.jxl"))
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -894,13 +857,226 @@ func (h *AdminHandler) DeleteLead(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
+func isValidImageMime(data []byte) bool {
+	if len(data) == 0 {
+		return false
+	}
+	mimeType := http.DetectContentType(data)
+	switch mimeType {
+	case "image/jpeg", "image/png", "image/webp":
+		return true
+	default:
+		return false
+	}
+}
+
+// isValidJXL verifies ISO/IEC 18181 JPEG XL magic bytes (naked codestream 0xFF 0x0A or ISOBMFF container).
+func isValidJXL(data []byte) bool {
+	if len(data) >= 2 && data[0] == 0xFF && data[1] == 0x0A {
+		return true
+	}
+	if len(data) >= 12 &&
+		data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x0C &&
+		data[4] == 'J' && data[5] == 'X' && data[6] == 'L' && data[7] == ' ' &&
+		data[8] == 0x0D && data[9] == 0x0A && data[10] == 0x87 && data[11] == 0x0A {
+		return true
+	}
+	return false
+}
+
+func saveCompanionFile(fileHeader *multipart.FileHeader, targetPath string, validate func([]byte) bool) bool {
+	if fileHeader == nil {
+		return false
+	}
+	f, err := fileHeader.Open()
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	buf := make([]byte, 512)
+	n, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return false
+	}
+	if !validate(buf[:n]) {
+		return false
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return false
+	}
+
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		return false
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, f); err != nil {
+		_ = os.Remove(targetPath)
+		return false
+	}
+	return true
+}
+
+// saveMultipartImages saves uploaded images and their client-side generated WebP/JXL & thumbnail variants.
+// When the browser provides all 4 pre-encoded EXIF-stripped blobs (full WebP, thumb WebP, full JXL, thumb JXL),
+// the server validates their magic bytes and writes them directly to disk with zero CPU encoding overhead.
+// If any variant is missing (e.g. direct API call or fallback), processUploadedImageVariants runs as a safety net.
+func (h *AdminHandler) saveMultipartImages(form *multipart.Form) []string {
+	if form == nil {
+		return nil
+	}
+	files := form.File["images"]
+	thumbsWebp := form.File["images_thumb_webp"]
+	fullsJxl := form.File["images_jxl"]
+	thumbsJxl := form.File["images_thumb_jxl"]
+
+	var saved []string
+	for i, fileHeader := range files {
+		var thumbWebpHdr, fullJxlHdr, thumbJxlHdr *multipart.FileHeader
+		if i < len(thumbsWebp) {
+			thumbWebpHdr = thumbsWebp[i]
+		}
+		if i < len(fullsJxl) {
+			fullJxlHdr = fullsJxl[i]
+		}
+		if i < len(thumbsJxl) {
+			thumbJxlHdr = thumbsJxl[i]
+		}
+		if uploadedPath, ok := h.saveUploadedImageWithVariants(fileHeader, thumbWebpHdr, fullJxlHdr, thumbJxlHdr); ok {
+			saved = append(saved, uploadedPath)
+		}
+	}
+	return saved
+}
+
+func (h *AdminHandler) saveUploadedImage(fileHeader *multipart.FileHeader) (string, bool) {
+	return h.saveUploadedImageWithVariants(fileHeader, nil, nil, nil)
+}
+
+func (h *AdminHandler) saveUploadedImageWithVariants(fileHeader, thumbWebpHdr, fullJxlHdr, thumbJxlHdr *multipart.FileHeader) (string, bool) {
+	if fileHeader == nil {
+		return "", false
+	}
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
+		return "", false
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", false
+	}
+	defer file.Close()
+
+	// Sniff first 512 bytes to verify actual image magic bytes
+	buf := make([]byte, 512)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return "", false
+	}
+	if !isValidImageMime(buf[:n]) {
+		return "", false
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", false
+	}
+
+	stemName := fmt.Sprintf("car_%d_%s", time.Now().UnixNano(), sanitizeFilename(fileHeader.Filename))
+	filename := stemName + ext
+	targetPath := filepath.Join(h.cfg.UploadDir, filename)
+	baseStemPath := filepath.Join(h.cfg.UploadDir, stemName)
+
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		return "", false
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", false
+	}
+	_ = dst.Close()
+
+	// Save client-side pre-computed variants if provided and valid
+	hasThumbWebp := saveCompanionFile(thumbWebpHdr, baseStemPath+"_thumb.webp", isValidImageMime)
+	hasFullJxl := saveCompanionFile(fullJxlHdr, baseStemPath+".jxl", isValidJXL)
+	hasThumbJxl := saveCompanionFile(thumbJxlHdr, baseStemPath+"_thumb.jxl", isValidJXL)
+
+	// If all variants were generated client-side (ext is .webp + thumb.webp + .jxl + thumb.jxl), skip server encoding!
+	if ext == ".webp" && hasThumbWebp && hasFullJxl && hasThumbJxl {
+		return "/uploads/" + filename, true
+	}
+
+	// Fallback / Defense-in-depth: strip EXIF and generate any missing variants on the server
+	processUploadedImageVariants(targetPath)
+
+	return "/uploads/" + filename, true
+}
+
+// processUploadedImageVariants removes all EXIF/GPS/location metadata from the uploaded image,
+// creates full-resolution (100% original pixel count) .webp and .jxl files for detail/zoom views,
+// and creates lightweight _thumb.webp and _thumb.jxl thumbnails for Home & Catalog cards.
+func processUploadedImageVariants(targetPath string) {
+	if _, err := exec.LookPath("magick"); err != nil {
+		return
+	}
+
+	ext := filepath.Ext(targetPath)
+	stem := strings.TrimSuffix(targetPath, ext)
+
+	// 1. Synchronously strip all EXIF/GPS metadata in-place while preserving camera orientation and full resolution
+	_ = exec.Command("magick", targetPath, "-auto-orient", "-strip", "-quality", "92", targetPath).Run()
+
+	// 2. Synchronously generate the WebP thumbnail so cards render immediately after upload
+	_ = exec.Command("magick", targetPath, "-auto-orient", "-strip", "-resize", "720x540>", "-quality", "80", stem+"_thumb.webp").Run()
+
+	// 3. Generate full-resolution WebP/JXL and JXL thumbnail asynchronously via atomic temp files
+	go func(srcPath, baseStem string) {
+		tmpWebP := baseStem + ".tmp.webp"
+		if err := exec.Command("magick", srcPath, "-auto-orient", "-strip", "-quality", "92", tmpWebP).Run(); err == nil {
+			_ = os.Rename(tmpWebP, baseStem+".webp")
+		} else {
+			_ = os.Remove(tmpWebP)
+		}
+
+		tmpThumbJXL := baseStem + "_thumb.tmp.jxl"
+		if err := exec.Command("magick", srcPath, "-auto-orient", "-strip", "-resize", "720x540>", "-define", "jxl:effort=3", "-quality", "80", tmpThumbJXL).Run(); err == nil {
+			_ = os.Rename(tmpThumbJXL, baseStem+"_thumb.jxl")
+		} else {
+			_ = os.Remove(tmpThumbJXL)
+		}
+
+		tmpJXL := baseStem + ".tmp.jxl"
+		if err := exec.Command("magick", srcPath, "-auto-orient", "-strip", "-define", "jxl:effort=3", "-quality", "90", tmpJXL).Run(); err == nil {
+			_ = os.Rename(tmpJXL, baseStem+".jxl")
+		} else {
+			_ = os.Remove(tmpJXL)
+		}
+	}(targetPath, stem)
+}
+
 func sanitizeFilename(name string) string {
 	name = filepath.Base(name)
-	name = strings.ReplaceAll(name, " ", "_")
-	if len(name) > 20 {
-		name = name[:20]
+	ext := filepath.Ext(name)
+	name = strings.TrimSpace(strings.TrimSuffix(name, ext))
+	var b strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			b.WriteRune(r)
+		} else if r == ' ' {
+			b.WriteRune('_')
+		}
 	}
-	return name
+	cleaned := strings.Trim(b.String(), "_-")
+	if cleaned == "" {
+		cleaned = "img"
+	}
+	if len(cleaned) > 20 {
+		cleaned = cleaned[:20]
+	}
+	return cleaned
 }
 
 type UpdateSettingsRequest struct {

@@ -31,8 +31,6 @@ services:
       TZ: "America/Argentina/Buenos_Aires"
       DATABASE_URL: "postgres://escocar:escocar_secure_password_2026@db:5432/escocardb?sslmode=disable"
       UPLOAD_DIR: "/app/uploads"
-      ADMIN_USER: admin
-      ADMIN_PASS: escocar2026
       ADMIN_DOMAIN: personalized.escocarautos.com.ar
       AUTHORIZED_ADMINS: demis.godoy@gmail.com
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}

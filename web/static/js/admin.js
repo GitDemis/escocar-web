@@ -4,6 +4,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
 
+  // Auto-redirect to Google OAuth login if any admin API request returns 401 (expired session)
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = async function(...args) {
+    const res = await nativeFetch(...args);
+    if (res && res.status === 401) {
+      window.location.href = '/auth/google/login';
+    }
+    return res;
+  };
+
   // 1. Tab Navigation (Left Lateral Dock)
   const tabs = document.querySelectorAll('.admin-tab');
   const panels = document.querySelectorAll('.tab-content');
@@ -33,9 +43,248 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) {}
 
-  // Helpers for file uploads
+  // Helpers for file uploads & 100% Client-Side EXIF Strip + WebP/JXL WASM Pipeline
   function isImageFile(file) {
     return file && file.type && (file.type.startsWith('image/jpeg') || file.type.startsWith('image/png') || file.type.startsWith('image/webp'));
+  }
+
+  let imageWorker = null;
+  let workerJobSeq = 0;
+  const workerPendingJobs = new Map();
+  const processedFileCache = new Map();
+  let clientEncodeQueue = Promise.resolve();
+  let fileUidCounter = 0;
+
+  function getFileUid(file) {
+    if (!file._escocarUid) {
+      file._escocarUid = 'img_' + (++fileUidCounter) + '_' + Date.now();
+    }
+    return file._escocarUid;
+  }
+
+  function sanitizeBaseStem(filename) {
+    const withoutExt = (filename || 'foto').replace(/\.[^/.]+$/, '');
+    const cleaned = withoutExt.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^[_-]+|[_-]+$/g, '').slice(0, 20);
+    return cleaned || 'img';
+  }
+
+  function getOrInitImageWorker() {
+    if (imageWorker) return imageWorker;
+    try {
+      imageWorker = new Worker('/static/js/image-worker.js', { type: 'module' });
+      imageWorker.onmessage = (e) => {
+        const data = e.data || {};
+        const pending = workerPendingJobs.get(data.id);
+        if (!pending) return;
+        workerPendingJobs.delete(data.id);
+        if (data.ok) {
+          pending.resolve(data);
+        } else {
+          pending.reject(new Error(data.error || 'Error en worker de imagen'));
+        }
+      };
+      imageWorker.onerror = (err) => {
+        console.warn('Error en Web Worker de imágenes, usando fallback Canvas:', err);
+        workerPendingJobs.forEach((p) => p.reject(err));
+        workerPendingJobs.clear();
+      };
+    } catch (e) {
+      console.warn('No se pudo iniciar Web Worker de imágenes:', e);
+      imageWorker = null;
+    }
+    return imageWorker;
+  }
+
+  async function decodeFileToImageSource(file) {
+    if (typeof createImageBitmap === 'function') {
+      try {
+        return await createImageBitmap(file, { imageOrientation: 'from-image' });
+      } catch (_) {
+        return await createImageBitmap(file);
+      }
+    }
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src = url;
+    });
+  }
+
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Fallo al exportar canvas'));
+      }, type, quality);
+    });
+  }
+
+  async function processSingleImageClientSide(file) {
+    const stem = sanitizeBaseStem(file.name);
+    const source = await decodeFileToImageSource(file);
+    const fullWidth = source.width || source.naturalWidth;
+    const fullHeight = source.height || source.naturalHeight;
+
+    // 1. Draw full-resolution canvas (100% original pixel count, strips all EXIF/GPS metadata)
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = fullWidth;
+    fullCanvas.height = fullHeight;
+    const fullCtx = fullCanvas.getContext('2d', { willReadFrequently: true });
+    fullCtx.drawImage(source, 0, 0, fullWidth, fullHeight);
+
+    // 2. Draw thumbnail canvas (fits inside 720x540 preserving aspect ratio)
+    const scale = Math.min(1, 720 / fullWidth, 540 / fullHeight);
+    const thumbWidth = Math.max(1, Math.round(fullWidth * scale));
+    const thumbHeight = Math.max(1, Math.round(fullHeight * scale));
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = thumbWidth;
+    thumbCanvas.height = thumbHeight;
+    const thumbCtx = thumbCanvas.getContext('2d', { willReadFrequently: true });
+    thumbCtx.drawImage(source, 0, 0, thumbWidth, thumbHeight);
+
+    if (typeof source.close === 'function') {
+      try { source.close(); } catch (_) {}
+    }
+
+    const worker = getOrInitImageWorker();
+    if (worker) {
+      try {
+        const fullImageData = fullCtx.getImageData(0, 0, fullWidth, fullHeight);
+        const thumbImageData = thumbCtx.getImageData(0, 0, thumbWidth, thumbHeight);
+        // Free canvas memory immediately before WASM encoding
+        fullCanvas.width = 0; fullCanvas.height = 0;
+        thumbCanvas.width = 0; thumbCanvas.height = 0;
+
+        const jobId = ++workerJobSeq;
+        const workerRes = await new Promise((resolve, reject) => {
+          workerPendingJobs.set(jobId, { resolve, reject });
+          worker.postMessage(
+            {
+              id: jobId,
+              fullBuffer: fullImageData.data.buffer,
+              fullWidth,
+              fullHeight,
+              thumbBuffer: thumbImageData.data.buffer,
+              thumbWidth,
+              thumbHeight,
+            },
+            [fullImageData.data.buffer, thumbImageData.data.buffer]
+          );
+        });
+
+        return {
+          status: 'done',
+          fullWebpFile: new File([workerRes.fullWebpBuffer], `${stem}.webp`, { type: 'image/webp' }),
+          thumbWebpFile: new File([workerRes.thumbWebpBuffer], `${stem}_thumb.webp`, { type: 'image/webp' }),
+          fullJxlFile: new File([workerRes.fullJxlBuffer], `${stem}.jxl`, { type: 'image/jxl' }),
+          thumbJxlFile: new File([workerRes.thumbJxlBuffer], `${stem}_thumb.jxl`, { type: 'image/jxl' }),
+        };
+      } catch (workerErr) {
+        console.warn('Fallback a Canvas nativo tras error en WASM worker:', workerErr);
+      }
+    }
+
+    // Fallback: native Canvas WebP export (still 100% EXIF-free)
+    const fullBlob = await canvasToBlob(fullCanvas, 'image/webp', 0.92);
+    const thumbBlob = await canvasToBlob(thumbCanvas, 'image/webp', 0.80);
+    fullCanvas.width = 0; fullCanvas.height = 0;
+    thumbCanvas.width = 0; thumbCanvas.height = 0;
+
+    return {
+      status: 'done',
+      fullWebpFile: new File([fullBlob], `${stem}.webp`, { type: fullBlob.type || 'image/webp' }),
+      thumbWebpFile: new File([thumbBlob], `${stem}_thumb.webp`, { type: thumbBlob.type || 'image/webp' }),
+      fullJxlFile: null,
+      thumbJxlFile: null,
+    };
+  }
+
+  function enqueueFilesForOptimization(files, onStatusChange) {
+    files.forEach((file) => {
+      const uid = getFileUid(file);
+      if (processedFileCache.has(uid)) return;
+      const record = {
+        status: 'pending',
+        fullWebpFile: null,
+        thumbWebpFile: null,
+        fullJxlFile: null,
+        thumbJxlFile: null,
+        promise: null,
+      };
+      record.promise = (clientEncodeQueue = clientEncodeQueue.then(async () => {
+        record.status = 'processing';
+        if (onStatusChange) onStatusChange();
+        try {
+          const res = await processSingleImageClientSide(file);
+          record.status = 'done';
+          record.fullWebpFile = res.fullWebpFile;
+          record.thumbWebpFile = res.thumbWebpFile;
+          record.fullJxlFile = res.fullJxlFile;
+          record.thumbJxlFile = res.thumbJxlFile;
+        } catch (err) {
+          console.error('Error optimizando imagen en cliente:', err);
+          record.status = 'error';
+        }
+        if (onStatusChange) onStatusChange();
+        return record;
+      }));
+      processedFileCache.set(uid, record);
+    });
+  }
+
+  async function appendOptimizedFilesToFormData(formData, files, submitBtn, labelPrefix) {
+    formData.delete('images');
+    formData.delete('images_thumb_webp');
+    formData.delete('images_jxl');
+    formData.delete('images_thumb_jxl');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const uid = getFileUid(file);
+      if (!processedFileCache.has(uid)) {
+        enqueueFilesForOptimization([file]);
+      }
+      const record = processedFileCache.get(uid);
+      if (record && record.status !== 'done' && record.promise) {
+        if (submitBtn) {
+          submitBtn.textContent = `${labelPrefix} (${i + 1}/${files.length} WebP+JXL)...`;
+        }
+        await record.promise;
+      }
+      if (record && record.status === 'done' && record.fullWebpFile) {
+        formData.append('images', record.fullWebpFile, record.fullWebpFile.name);
+        if (record.thumbWebpFile) {
+          formData.append('images_thumb_webp', record.thumbWebpFile, record.thumbWebpFile.name);
+        }
+        if (record.fullJxlFile) {
+          formData.append('images_jxl', record.fullJxlFile, record.fullJxlFile.name);
+        }
+        if (record.thumbJxlFile) {
+          formData.append('images_thumb_jxl', record.thumbJxlFile, record.thumbJxlFile.name);
+        }
+      } else {
+        formData.append('images', file, file.name);
+      }
+    }
+  }
+
+  function getOptimizationBadgeHtml(file) {
+    const record = processedFileCache.get(getFileUid(file));
+    if (!record || record.status === 'pending' || record.status === 'processing') {
+      return '<span class="img-opt-status" style="position:absolute;bottom:4px;left:4px;right:4px;background:rgba(15,23,42,0.82);color:#fbbf24;font-size:0.65rem;padding:2px 5px;border-radius:4px;text-align:center;">⏳ WebP+JXL...</span>';
+    }
+    if (record.status === 'done') {
+      return '<span class="img-opt-status" style="position:absolute;bottom:4px;left:4px;right:4px;background:rgba(6,78,59,0.88);color:#6ee7b7;font-size:0.65rem;padding:2px 5px;border-radius:4px;text-align:center;">✓ WebP+JXL · Sin GPS</span>';
+    }
+    return '';
   }
 
   // 2. Add New Car Uploader State & Form
@@ -55,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <img src="${objUrl}" alt="${file.name}">
         <button type="button" class="btn-remove-img" data-remove-add-idx="${idx}" title="Quitar foto">✕</button>
         <span class="img-badge">${idx === 0 ? 'Portada' : idx + 1}</span>
+        ${getOptimizationBadgeHtml(file)}
       `;
       addCarPreviewGrid.appendChild(card);
     });
@@ -64,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addCarFileInput.addEventListener('change', (e) => {
       const selected = Array.from(e.target.files).filter(isImageFile);
       addCarFiles = addCarFiles.concat(selected);
+      enqueueFilesForOptimization(selected, renderAddCarPreviews);
       renderAddCarPreviews();
       addCarFileInput.value = '';
     });
@@ -83,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.dataTransfer && e.dataTransfer.files) {
         const dropped = Array.from(e.dataTransfer.files).filter(isImageFile);
         addCarFiles = addCarFiles.concat(dropped);
+        enqueueFilesForOptimization(dropped, renderAddCarPreviews);
         renderAddCarPreviews();
       }
     });
@@ -100,19 +352,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const addCarForm = document.getElementById('addCarForm');
+  const carStatusSelect = document.getElementById('carStatus');
+  const submitNewCarBtn = document.getElementById('submitNewCarBtn');
+  if (carStatusSelect && submitNewCarBtn) {
+    const updateSubmitBtnText = () => {
+      if (carStatusSelect.value === 'borrador') {
+        submitNewCarBtn.textContent = '💾 Guardar como Borrador (Solo Administradores)';
+      } else {
+        submitNewCarBtn.textContent = '🚀 Guardar y Publicar en Catálogo';
+      }
+    };
+    carStatusSelect.addEventListener('change', updateSubmitBtnText);
+    updateSubmitBtnText();
+  }
+
   if (addCarForm) {
     addCarForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const submitBtn = addCarForm.querySelector('button[type="submit"]');
+      const submitBtn = submitNewCarBtn || addCarForm.querySelector('button[type="submit"]');
       const origText = submitBtn.textContent;
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Guardando vehículo...';
+      submitBtn.textContent = 'Optimizando fotos...';
 
       const formData = new FormData(addCarForm);
-      formData.delete('images');
-      addCarFiles.forEach(file => {
-        formData.append('images', file, file.name);
-      });
+      await appendOptimizedFilesToFormData(formData, addCarFiles, submitBtn, 'Optimizando fotos');
+      submitBtn.textContent = 'Subiendo vehículo...';
 
       try {
         const res = await fetch('/api/cars', {
@@ -121,7 +385,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.ok) {
-          alert('¡Vehículo agregado exitosamente al inventario!');
+          const isDraft = formData.get('status') === 'borrador';
+          if (isDraft) {
+            alert('¡Vehículo guardado exitosamente como BORRADOR!\n\nNo está publicado en la web ni visible para los clientes. Podés verlo y probarlo desde el panel o con el botón "Ver" exclusivo para administradores.');
+          } else {
+            alert('¡Vehículo agregado exitosamente al inventario y publicado en el catálogo!');
+          }
           window.location.reload();
         } else {
           const errText = await res.text();
@@ -256,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <img src="${objUrl}" alt="${file.name}">
         <button type="button" class="btn-remove-img" data-remove-new-idx="${idx}" title="Quitar foto">✕</button>
         <span class="img-badge" style="background: rgba(16, 185, 129, 0.85); color: #fff;">Nueva</span>
+        ${getOptimizationBadgeHtml(file)}
       `;
       editCarPreviewGrid.appendChild(card);
     });
@@ -276,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editCarFileInput.addEventListener('change', (e) => {
       const selected = Array.from(e.target.files).filter(isImageFile);
       editCarNewFiles = editCarNewFiles.concat(selected);
+      enqueueFilesForOptimization(selected, renderEditCarNewPreviews);
       renderEditCarNewPreviews();
       editCarFileInput.value = '';
     });
@@ -295,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.dataTransfer && e.dataTransfer.files) {
         const dropped = Array.from(e.dataTransfer.files).filter(isImageFile);
         editCarNewFiles = editCarNewFiles.concat(dropped);
+        enqueueFilesForOptimization(dropped, renderEditCarNewPreviews);
         renderEditCarNewPreviews();
       }
     });
@@ -397,14 +669,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const saveBtn = document.getElementById('saveEditCarBtn');
       const origText = saveBtn.textContent;
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Guardando cambios...';
+      saveBtn.textContent = 'Optimizando fotos...';
 
       const formData = new FormData(editCarForm);
-      formData.delete('images');
       formData.set('existing_images', JSON.stringify(editCarExistingList));
-      editCarNewFiles.forEach(file => {
-        formData.append('images', file, file.name);
-      });
+      await appendOptimizedFilesToFormData(formData, editCarNewFiles, saveBtn, 'Optimizando fotos');
+      saveBtn.textContent = 'Guardando cambios...';
 
       try {
         const res = await fetch(`/api/cars/${carId}`, {
@@ -869,9 +1139,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const carContainer = document.getElementById('leadModalCar');
       if (carContainer) {
         if (lead.car_id) {
-          carContainer.innerHTML = `<a href="/auto/${lead.car_id}" target="_blank" style="color: var(--accent-gold); font-weight: 700; text-decoration: none;">${lead.car_title} ↗</a>`;
+          carContainer.innerHTML = `<a href="/auto/${encodeURIComponent(lead.car_id)}" target="_blank" style="color: var(--accent-gold); font-weight: 700; text-decoration: none;">${escapeHtml(lead.car_title || '')} ↗</a>`;
         } else {
-          carContainer.innerHTML = `<span style="color: var(--text-muted); font-weight: 600;">${lead.car_title || 'Consulta General'}</span>`;
+          carContainer.innerHTML = `<span style="color: var(--text-muted); font-weight: 600;">${escapeHtml(lead.car_title || 'Consulta General')}</span>`;
         }
       }
 
@@ -888,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const carsSeenList = document.getElementById('leadModalCarsSeenList');
       if (carsSeenBox && carsSeenList) {
         if (lead.visitor_cars_seen && lead.visitor_cars_seen.length > 0) {
-          carsSeenList.innerHTML = lead.visitor_cars_seen.map(c => `<span class="lead-cars-seen-tag">🚗 ${c}</span>`).join('');
+          carsSeenList.innerHTML = lead.visitor_cars_seen.map(c => `<span class="lead-cars-seen-tag">🚗 ${escapeHtml(c)}</span>`).join('');
           carsSeenBox.style.display = 'block';
         } else {
           carsSeenBox.style.display = 'none';
