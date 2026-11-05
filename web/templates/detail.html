@@ -247,14 +247,18 @@
               <td>Carrocería</td>
               <td>{{.SelectedCar.BodyType}}</td>
             </tr>
+            {{if .SelectedCar.Color}}
             <tr>
               <td>Color Exterior</td>
               <td>{{.SelectedCar.Color}}</td>
             </tr>
+            {{end}}
+            {{if gt .SelectedCar.Doors 0}}
             <tr>
               <td>Puertas</td>
               <td>{{.SelectedCar.Doors}}</td>
             </tr>
+            {{end}}
             {{if .SelectedCar.Engine}}
             <tr>
               <td>Motorización</td>
