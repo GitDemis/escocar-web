@@ -37,11 +37,16 @@
       if (typeof window.gtag === 'function') {
         try {
           if (eventType === 'whatsapp_click') {
-            window.gtag('event', 'generate_lead', {
-              event_category: 'engagement',
+            // Dedicated event name so it can be marked as a Key Event in GA4
+            // (Admin > Data display > Events > "Mark as key event").
+            window.gtag('event', 'whatsapp_click', {
+              event_category: 'conversion',
               event_label: (typeof eventData === 'object' && eventData.car) ? eventData.car : 'WhatsApp Inquiry',
               method: 'whatsapp',
-              car_id: carId || null
+              link_url: (typeof eventData === 'object' && eventData.target) ? eventData.target : '',
+              link_location: (typeof eventData === 'object' && eventData.location) ? eventData.location : '',
+              car_id: carId || null,
+              transport_type: 'beacon'
             });
           } else if (eventType === 'lead_form_submitted') {
             window.gtag('event', 'generate_lead', {
@@ -76,11 +81,14 @@
     init: function() {
       // 1. Track WhatsApp clicks
       document.addEventListener('click', (e) => {
-        const waBtn = e.target.closest('[data-track="whatsapp"]');
+        const waBtn = e.target.closest(
+          '[data-track="whatsapp"], a[href*="wa.me/"], a[href*="api.whatsapp.com"], a[href*="web.whatsapp.com"], a[href^="whatsapp:"]'
+        );
         if (waBtn) {
           const carId = waBtn.getAttribute('data-car-id');
           const carName = waBtn.getAttribute('data-car-name') || 'General';
-          tracker.sendEvent('whatsapp_click', { car: carName, target: waBtn.href }, carId);
+          const location = waBtn.id || waBtn.className || '';
+          tracker.sendEvent('whatsapp_click', { car: carName, target: waBtn.href, location: location }, carId);
         }
 
         // Track car card view clicks
